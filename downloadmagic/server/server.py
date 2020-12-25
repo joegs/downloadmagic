@@ -11,6 +11,7 @@ class DownloadServer(th.Thread):
     def __init__(self, message_broker: MessageBroker) -> None:
         super().__init__(daemon=True)
         self.downloads: Dict[int, Download] = {}
+        self.downloads_status: Dict[int, Dict[str, Any]] = {}
         self.subscriber = ThreadSubscriber({"downloadserver"})
         self.message_broker = message_broker
         self.message_broker.subscribe(self.subscriber)
@@ -65,6 +66,11 @@ class DownloadServer(th.Thread):
         download: Optional[Download] = self.downloads.get(download_id, None)
         if download is None:
             return
+        cached_status = self.downloads_status.get(download_id, None)
+        action = "ClientUpdateDownload"
+        if cached_status is None:
+            action = "ClientAddDownload"
+        self.downloads_status[download_id] = message
         status: str = message["status"]
         downloaded_bytes: int = message["downloaded_bytes"]
         progress: float = message["progress"]
@@ -76,7 +82,7 @@ class DownloadServer(th.Thread):
             time_remaining = "INF"
         message = {
             "topic": "downloadclient",
-            "action": "ClientAddDownload",
+            "action": action,
             "download_id": download.download_id,
             "filename": download.filename,
             "size": convert_size(download.size),
@@ -91,12 +97,16 @@ class DownloadServer(th.Thread):
         action: Optional[str] = message.get("action", None)
         if action is None:
             return
+        download_id: int
         if action == "CreateDownload":
             url: str = message["url"]
             download_directory: str = message["download_directory"]
             self.create_download(url, download_directory)
+        elif action == "StartDownload":
+            download_id = message["download_id"]
+            self.start_download(download_id)
         elif action == "DownloadInfo":
-            download_id: int = message["download_id"]
+            download_id = message["download_id"]
             download_info: Dict[str, Any] = message["download_info"]
             self._receive_download_info(download_id, download_info)
         elif action == "DownloadStatus":

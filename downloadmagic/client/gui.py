@@ -103,6 +103,13 @@ class DownloadList(GuiElement):
                 return iid
         return ""
 
+    def get_selected_item(self) -> int:
+        selection = self.tree.selection()
+        download_id = -1
+        if selection:
+            download_id = self.tree.set(selection[0], 0)
+        return download_id
+
     def update_item(self, download_id: int, values: Tuple[str, ...]) -> None:
         iid = self._get_item_iid(download_id)
         tag = ""
@@ -114,6 +121,7 @@ class DownloadList(GuiElement):
             tag = "completed"
         elif values[3] == DownloadStatus.PAUSED.name:
             tag = "paused"
+        values = (f"{download_id}",) + values
         self.tree.item(iid, values=values, tags=tag)
 
     def add_item(self, download_id: int, values: Tuple[str, ...]) -> None:
