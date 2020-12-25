@@ -17,6 +17,12 @@ class DownloadStatus(Enum):
     ERROR = auto()
 
 
+class DownloadOperation(Enum):
+    START = "START"
+    PAUSE = "PAUSE"
+    CANCEL = "PAUSE"
+
+
 @dataclass
 class Download:
     download_id: int
