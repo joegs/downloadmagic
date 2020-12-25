@@ -47,10 +47,12 @@ class DownloadWorker(th.Thread):
         )
         message = {
             "topic": "downloadserver",
+            "action": "DownloadInfo",
             "download_id": self.download_id,
             "download_info": self.download.to_dictionary(),
         }
         self.message_broker.send_message(message)
+        self._send_download_status()
 
     def _process_messsages(self) -> None:
         for message in self.subscriber.messages():
@@ -83,6 +85,7 @@ class DownloadWorker(th.Thread):
         progress = self.downloaded_bytes / self.download.size
         message = {
             "topic": "downloadserver",
+            "action": "DownloadStatus",
             "download_id": self.download.download_id,
             "status": self.status.value,
             "downloaded_bytes": self.downloaded_bytes,

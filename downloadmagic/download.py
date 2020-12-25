@@ -36,6 +36,7 @@ class Download:
     def to_dictionary(self) -> Dict[str, Any]:
         dictionary = {
             "download_id": self.download_id,
+            "url": self.url,
             "download_directory": self.download_directory,
             "size": self.size,
             "filename": self.filename,

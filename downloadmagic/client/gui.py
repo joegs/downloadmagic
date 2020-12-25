@@ -2,7 +2,9 @@ import importlib.resources
 import tkinter as tk
 from functools import partial
 from tkinter import ttk
-from typing import Callable, Union
+from typing import Callable, Tuple, Union
+
+from downloadmagic.download import DownloadStatus
 
 
 class GuiElement(ttk.Frame):
@@ -101,46 +103,27 @@ class DownloadList(GuiElement):
                 return iid
         return ""
 
-    # def _handle_list_item_operation(self, event: Event) -> None:
-    #     operation_event: GuiListItemOperationEvent = cast(
-    #         GuiListItemOperationEvent, event
-    #     )
-    #     if operation_event.operation == ListItemOperation.UPDATE_ITEM:
-    #         iid = self._get_item_iid(operation_event.download_id)
-    #         values = (
-    #             operation_event.download_id,
-    #             operation_event.data["filename"],
-    #             operation_event.data["size"],
-    #             operation_event.data["progress"],
-    #             operation_event.data["status"],
-    #             operation_event.data["speed"],
-    #             operation_event.data["remaining"],
-    #         )
-    #         tag = ""
-    #         if operation_event.data["status"] == DownloadStatus.IN_PROGRESS.name:
-    #             tag = "in_progress"
-    #         elif operation_event.data["status"] == DownloadStatus.CANCELED.name:
-    #             tag = "canceled"
-    #         elif operation_event.data["status"] == DownloadStatus.COMPLETED.name:
-    #             tag = "completed"
-    #         elif operation_event.data["status"] == DownloadStatus.PAUSED.name:
-    #             tag = "paused"
-    #         self.tree.item(iid, values=values, tags=tag)
-    #     elif operation_event.operation == ListItemOperation.ADD_ITEM:
-    #         values = (
-    #             operation_event.download_id,
-    #             operation_event.data["filename"],
-    #             operation_event.data["size"],
-    #             operation_event.data["progress"],
-    #             operation_event.data["status"],
-    #             operation_event.data["speed"],
-    #             operation_event.data["remaining"],
-    #         )
-    #         self.tree.insert("", "end", values=values, tags="normal")
-    #     elif operation_event.operation == ListItemOperation.DELETE_ITEM:
-    #         iid = self._get_item_iid(operation_event.download_id)
-    #         if iid:
-    #             self.tree.delete(iid)
+    def update_item(self, download_id: int, values: Tuple[str, ...]) -> None:
+        iid = self._get_item_iid(download_id)
+        tag = ""
+        if values[3] == DownloadStatus.IN_PROGRESS.name:
+            tag = "in_progress"
+        elif values[3] == DownloadStatus.CANCELED.name:
+            tag = "canceled"
+        elif values[3] == DownloadStatus.COMPLETED.name:
+            tag = "completed"
+        elif values[3] == DownloadStatus.PAUSED.name:
+            tag = "paused"
+        self.tree.item(iid, values=values, tags=tag)
+
+    def add_item(self, download_id: int, values: Tuple[str, ...]) -> None:
+        values = (f"{download_id}",) + values
+        self.tree.insert("", "end", values=values, tags="normal")
+
+    def delete_item(self, download_id: int) -> None:
+        iid = self._get_item_iid(download_id)
+        if iid:
+            self.tree.delete(iid)
 
 
 class DownloadListArea(GuiElement):
