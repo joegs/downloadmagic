@@ -1,7 +1,7 @@
 import os
 import re
 from dataclasses import dataclass
-from enum import Enum, auto
+from enum import Enum
 from typing import Any, Dict
 from urllib.parse import urlparse
 
@@ -9,12 +9,12 @@ import requests
 
 
 class DownloadStatus(Enum):
-    UNSTARTED = auto()
-    IN_PROGRESS = auto()
-    PAUSED = auto()
-    COMPLETED = auto()
-    CANCELED = auto()
-    ERROR = auto()
+    UNSTARTED = "UNSTARTED"
+    IN_PROGRESS = "IN_PROGRESS"
+    PAUSED = "PAUSED"
+    COMPLETED = "COMPLETED"
+    CANCELED = "CANCELED"
+    ERROR = "ERROR"
 
 
 class DownloadOperation(Enum):
