@@ -25,9 +25,17 @@ class Client:
     def _initialize(self) -> None:
         button_bar = self.application_window.download_list_area.button_bar
         button_bar.add_download_button.configure(command=self._create_download)
-        button_bar.start_download_button.configure(command=self._start_download)
+        button_bar.start_download_button.configure(
+            command=lambda: self._download_operation(DownloadOperation.START)
+        )
+        button_bar.pause_download_button.configure(
+            command=lambda: self._download_operation(DownloadOperation.PAUSE)
+        )
+        button_bar.cancel_download_button.configure(
+            command=lambda: self._download_operation(DownloadOperation.CANCEL)
+        )
 
-    def _start_download(self) -> None:
+    def _download_operation(self, download_operation: DownloadOperation) -> None:
         download_list = self.application_window.download_list_area.download_list
         selected_download = download_list.get_selected_item()
         if selected_download == -1:
@@ -36,7 +44,7 @@ class Client:
             topic="downloadserver",
             action="DownloadOperation",
             download_id=selected_download,
-            download_operation=DownloadOperation.START.value,
+            download_operation=download_operation.value,
         )
         self.message_broker.send_message(message)
 

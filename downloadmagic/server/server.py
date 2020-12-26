@@ -64,9 +64,9 @@ class DownloadServer(th.Thread):
         if operation == DownloadOperation.START.value:
             self.start_download(download_id)
         elif operation == DownloadOperation.PAUSE.value:
-            self.start_download(download_id)
+            self.pause_download(download_id)
         elif operation == DownloadOperation.CANCEL.value:
-            self.start_download(download_id)
+            self.cancel_download(download_id)
 
     def _receive_download_info(self, message: DownloadInfoMessage) -> None:
         download = Download(

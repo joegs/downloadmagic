@@ -20,7 +20,7 @@ class DownloadStatus(Enum):
 class DownloadOperation(Enum):
     START = "START"
     PAUSE = "PAUSE"
-    CANCEL = "PAUSE"
+    CANCEL = "CANCEL"
 
 
 @dataclass
