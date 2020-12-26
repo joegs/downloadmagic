@@ -1,2 +1,2 @@
-from messaging.base import Message, Subscriber, MessageBroker
-from messaging.message import ThreadSubscriber, DefaultMessageBroker
+from messaging.base import Message, MessageBroker, Subscriber
+from messaging.message import DefaultMessageBroker, ThreadSubscriber

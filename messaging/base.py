@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Set
+from typing import Set, TypedDict
 
-Message = Dict[str, Any]
+
+class Message(TypedDict):
+    topic: str
+    action: str
 
 
 class Subscriber(ABC):

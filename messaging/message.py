@@ -1,6 +1,6 @@
 import queue
 import threading as th
-from typing import Iterator, List, Optional, Set
+from typing import Iterator, List, Set
 
 from messaging.base import Message, MessageBroker, Subscriber
 
@@ -37,9 +37,7 @@ class DefaultMessageBroker(MessageBroker):
         self.subscribers: List[Subscriber] = []
 
     def send_message(self, message: Message) -> None:
-        topic: Optional[str] = message.get("topic", None)
-        if topic is None:
-            return
+        topic = message["topic"]
         for subscriber in self.subscribers:
             if topic in subscriber.topics:
                 subscriber.receive_message(message)

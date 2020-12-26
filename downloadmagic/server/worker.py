@@ -1,8 +1,14 @@
 import os
 import threading as th
+from typing import cast
 
 import requests
 from downloadmagic.download import Download, DownloadOperation, DownloadStatus
+from downloadmagic.message import (
+    DownloadInfoMessage,
+    DownloadOperationMessage,
+    DownloadStatusMessage,
+)
 from downloadmagic.utilities import Timer
 from messaging import Message, MessageBroker, ThreadSubscriber
 
@@ -45,12 +51,17 @@ class DownloadWorker(th.Thread):
         self.download = Download.from_values(
             self.download_id, self.url, self.download_directory
         )
-        message = {
-            "topic": "downloadserver",
-            "action": "DownloadInfo",
-            "download_id": self.download_id,
-            "download_info": self.download.to_dictionary(),
-        }
+        message = DownloadInfoMessage(
+            topic="downloadserver",
+            action="DownloadInfo",
+            download_id=self.download_id,
+            url=self.download.url,
+            download_directory=self.download_directory,
+            size=self.download.size,
+            filename=self.download.filename,
+            filepath=self.download.filepath,
+            is_pausable=self.download.is_pausable,
+        )
         self.message_broker.send_message(message)
         self._send_download_status()
 
@@ -59,9 +70,10 @@ class DownloadWorker(th.Thread):
             self._process_message(message)
 
     def _process_message(self, message: Message) -> None:
-        operation = message.get("download_operation", None)
-        if operation is None:
+        if message["action"] != "DownloadOperation":
             return
+        download_operation_message = cast(DownloadOperationMessage, message)
+        operation = download_operation_message["download_operation"]
         if operation == DownloadOperation.START.value and (
             self.status == DownloadStatus.UNSTARTED
             or self.status == DownloadStatus.PAUSED
@@ -83,15 +95,15 @@ class DownloadWorker(th.Thread):
 
     def _send_download_status(self) -> None:
         progress = self.downloaded_bytes / self.download.size
-        message = {
-            "topic": "downloadserver",
-            "action": "DownloadStatus",
-            "download_id": self.download.download_id,
-            "status": self.status.value,
-            "downloaded_bytes": self.downloaded_bytes,
-            "progress": progress,
-            "speed": self.speed,
-        }
+        message = DownloadStatusMessage(
+            topic="downloadserver",
+            action="DownloadStatus",
+            download_id=self.download.download_id,
+            status=self.status.value,
+            downloaded_bytes=self.downloaded_bytes,
+            progress=progress,
+            speed=self.speed,
+        )
         self.message_broker.send_message(message)
 
     def _delete_file(self) -> None:
