@@ -5,7 +5,6 @@ import threading as th
 from typing import Iterator, List, cast
 
 import websockets
-
 from messaging.base import Message, MessageBroker, Subscriber
 
 
@@ -42,13 +41,16 @@ class WebsocketBrokerServer(th.Thread):
     async def consumer_handler(
         self, websocket: websockets.WebSocketServerProtocol, path: str
     ) -> None:
-        async for message in websocket:
-            m = cast(str, message)
-            try:
-                self.output_queue.put_nowait(m)
-                self.sent.set()
-            except queue.Full:
-                pass
+        try:
+            async for message in websocket:
+                m = cast(str, message)
+                try:
+                    self.output_queue.put_nowait(m)
+                    self.sent.set()
+                except queue.Full:
+                    pass
+        except websockets.ConnectionClosedError:
+            print("Client Disconnected")
 
     async def producer_handler(
         self, websocket: websockets.WebSocketServerProtocol, path: str
@@ -61,17 +63,14 @@ class WebsocketBrokerServer(th.Thread):
     async def handler(
         self, websocket: websockets.WebSocketServerProtocol, path: str
     ) -> None:
-        try:
-            consumer_task = asyncio.create_task(self.consumer_handler(websocket, path))
-            producer_task = asyncio.create_task(self.producer_handler(websocket, path))
-            done, pending = await asyncio.wait(
-                [consumer_task, producer_task],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-            for task in pending:
-                task.cancel()
-        finally:
-            pass
+        consumer_task = asyncio.create_task(self.consumer_handler(websocket, path))
+        producer_task = asyncio.create_task(self.producer_handler(websocket, path))
+        done, pending = await asyncio.wait(
+            [consumer_task, producer_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for task in pending:
+            task.cancel()
 
     async def start_server(self) -> None:
         event_loop = asyncio.new_event_loop()
@@ -118,13 +117,16 @@ class WebsocketBrokerClient(th.Thread):
     async def consumer_handler(
         self, websocket: websockets.WebSocketClientProtocol
     ) -> None:
-        async for message in websocket:
-            m = cast(str, message)
-            try:
-                self.output_queue.put_nowait(m)
-                self.sent.set()
-            except queue.Full:
-                pass
+        try:
+            async for message in websocket:
+                m = cast(str, message)
+                try:
+                    self.output_queue.put_nowait(m)
+                    self.sent.set()
+                except queue.Full:
+                    pass
+        except websockets.ConnectionClosedError:
+            print("Server Disconnected")
 
     async def producer_handler(
         self, websocket: websockets.WebSocketClientProtocol
@@ -137,18 +139,15 @@ class WebsocketBrokerClient(th.Thread):
                 return
 
     async def start_connection(self) -> None:
-        try:
-            async with websockets.connect(self.uri) as websocket:
-                consumer_task = asyncio.create_task(self.consumer_handler(websocket))
-                producer_task = asyncio.create_task(self.producer_handler(websocket))
-                done, pending = await asyncio.wait(
-                    [consumer_task, producer_task],
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
-                for task in pending:
-                    task.cancel()
-        finally:
-            pass
+        async with websockets.connect(self.uri) as websocket:
+            consumer_task = asyncio.create_task(self.consumer_handler(websocket))
+            producer_task = asyncio.create_task(self.producer_handler(websocket))
+            done, pending = await asyncio.wait(
+                [consumer_task, producer_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for task in pending:
+                task.cancel()
 
     def run(self) -> None:
         asyncio.run(self.start_connection())

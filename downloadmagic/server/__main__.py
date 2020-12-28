@@ -1,10 +1,13 @@
+import sys
 import time
 
 from downloadmagic.server import DownloadServer
-from messaging.online import SocketServerMessageBroker
+from downloadmagic.online import SocketServerMessageBroker
 
 if __name__ == "__main__":
-    server_broker = SocketServerMessageBroker("192.168.0.19", 8765)
+    host = sys.argv[1]
+    port = int(sys.argv[2])
+    server_broker = SocketServerMessageBroker(host, port)
     server = DownloadServer(server_broker)
     server.start()
     while True:
