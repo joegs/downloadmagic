@@ -2,7 +2,7 @@ import time
 
 
 def convert_time(seconds: int) -> str:
-    """Convert an amount of time in seconds into a human readable string.
+    """Convert an amount of seconds into a human readable string.
 
     Parameters
     ----------
@@ -32,7 +32,7 @@ def convert_time(seconds: int) -> str:
 
 
 def convert_size(size: float, decimal_places: int = 2) -> str:
-    """Convert a size in bytes into a human readable string
+    """Convert a size in bytes into a human readable string.
 
     Parameters
     ----------
@@ -64,9 +64,9 @@ class Timer:
 
     Attributes
     ----------
-    elapsed_time
-        The time that transcurred from the moment the timer was started,
-        to the moment it was measured.
+    elapsed_time : float
+        The time that transcurred from the moment the timer was
+        started, to the moment it was measured.
     """
 
     def __init__(self) -> None:
