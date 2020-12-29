@@ -2,7 +2,6 @@ import os
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict
 from urllib.parse import urlparse
 
 import requests
@@ -25,6 +24,31 @@ class DownloadOperation(Enum):
 
 @dataclass
 class Download:
+    """Container for the information of a download.
+
+    This is a dataclass, all attributes are required.
+
+    Attributes
+    ----------
+    download_id : int
+        The unique id of the download.
+    url: str
+        The url of the download.
+    download_directory
+        The directory where the download will be saved to.
+    size : int
+        The size of the download, in bytes.
+    filename : str
+        The filename of the download.
+    filepath : str
+        The file path where the download will be saved to. This must
+        the concatenation of `download_directory` and `filename`.
+    is_pausable : bool
+        Indicates whether or not the download can be paused and resumed
+        later.
+
+    """
+
     download_id: int
     url: str
     download_directory: str
@@ -32,18 +56,6 @@ class Download:
     filename: str
     filepath: str
     is_pausable: bool
-
-    def to_dictionary(self) -> Dict[str, Any]:
-        dictionary = {
-            "download_id": self.download_id,
-            "url": self.url,
-            "download_directory": self.download_directory,
-            "size": self.size,
-            "filename": self.filename,
-            "filepath": self.filepath,
-            "is_pausable": self.is_pausable,
-        }
-        return dictionary
 
     @staticmethod
     def _get_filename_from_url(url: str) -> str:
@@ -70,9 +82,19 @@ class Download:
         return range_header == "bytes"
 
     @classmethod
-    def from_values(
+    def from_url(
         cls, download_id: int, url: str, download_directory: str
     ) -> "Download":
+        """Create a `Download` instance from a url.
+
+        The values are computed by making an http request to the url,
+        so this method may fail and raise an exception.
+
+        Returns
+        -------
+        Download
+            The resulting download.
+        """
         response = requests.head(url, allow_redirects=True)
         size = int(response.headers["Content-Length"])
         filename = cls._get_filename(response, url)

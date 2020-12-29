@@ -48,7 +48,7 @@ class DownloadWorker(th.Thread):
                 return
 
     def _initialize_download(self) -> None:
-        self.download = Download.from_values(
+        self.download = Download.from_url(
             self.download_id, self.url, self.download_directory
         )
         message = DownloadInfoMessage(
