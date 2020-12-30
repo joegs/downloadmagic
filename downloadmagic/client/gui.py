@@ -8,28 +8,34 @@ from downloadmagic.download import DownloadStatus
 
 
 class GuiElement(ttk.Frame):
+    """Base class for all GUI elements."""
+
     def _initialize(self) -> None:
         pass
 
 
 class DownloadInputArea(GuiElement):
+    """An area where download links are inputted by the user."""
+
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self.text_input = ttk.Entry(self, width=100)
-        self.input_label = ttk.Label(self, text="Download link")
+        self.label = ttk.Label(self, text="Download link")
+        self.text_entry = ttk.Entry(self, width=100)
         self._initialize()
 
     def _initialize(self) -> None:
         self.configure(padding=10)
-        self.input_label.grid(column=0, row=0, padx="0 10", pady="0 10", sticky="NSW")
-        self.text_input.grid(column=1, row=0, pady="0 10", sticky="WE")
+        self.label.grid(column=0, row=0, padx="0 10", pady="0 10", sticky="NSW")
+        self.text_entry.grid(column=1, row=0, pady="0 10", sticky="WE")
 
     def get_text(self) -> str:
-        text: str = self.text_input.get()
+        text: str = self.text_entry.get()
         return text
 
 
 class DownloadListButtonBar(GuiElement):
+    """A button bar used to control downloads."""
+
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
         self.add_download_button = ttk.Button(self, text="Add")
@@ -46,7 +52,27 @@ class DownloadListButtonBar(GuiElement):
 
 
 class DownloadList(GuiElement):
+    """An area where downloads are displayed in a list.
+
+    The first column of COLUMNS, the ID for the downloads, is not
+    displayed. It's used to identify specific downloads.
+
+    """
+
     COLUMNS = ("ID", "Filename", "Size", "Progress", "Status", "Speed", "Remaining")
+    TAG_COLORS = {
+        "completed": "#ccffcc",
+        "in_progress": "#ccebff",
+        "paused": "#ffffcc",
+        "canceled": "#ffcccc",
+    }
+    _STATUS_TAG_MAP = {
+        DownloadStatus.COMPLETED.name: "completed",
+        DownloadStatus.IN_PROGRESS.name: "in_progress",
+        DownloadStatus.PAUSED.name: "paused",
+        DownloadStatus.CANCELED.name: "canceled",
+        DownloadStatus.UNSTARTED.name: "unstarted",
+    }
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
@@ -61,17 +87,14 @@ class DownloadList(GuiElement):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.tree.configure(
-            xscrollcommand=self.hscrollbar.set,
-            yscrollcommand=self.vscrollbar.set,
             columns=self.COLUMNS,
             show="headings",
             displaycolumns=tuple(self.COLUMNS[1:]),
+            xscrollcommand=self.hscrollbar.set,
+            yscrollcommand=self.vscrollbar.set,
         )
-        self.tree.tag_configure("in_progress", background="#ccebff")
-        self.tree.tag_configure("canceled", background="#ffcccc")
-        self.tree.tag_configure("completed", background="#ccffcc")
-        self.tree.tag_configure("paused", background="#ffffcc")
-        self.tree.bind("<Key-Escape>", lambda event: self._deselect_current_item())
+        self.tree.bind("<Key-Escape>", lambda event: self.deselect_current_item())
+        self._configure_tag_colors()
         for index, column in enumerate(self.COLUMNS):
             self.tree.heading(
                 column, text=column, command=partial(self._sort_column, index)
@@ -81,10 +104,9 @@ class DownloadList(GuiElement):
         self.vscrollbar.grid(column=1, row=0, sticky="NS")
         self.hscrollbar.grid(column=0, row=1, sticky="WE")
 
-    def _deselect_current_item(self) -> None:
-        selection = self.tree.selection()
-        if selection:
-            self.tree.selection_remove(selection[0])
+    def _configure_tag_colors(self) -> None:
+        for tag, color in self.TAG_COLORS.items():
+            self.tree.tag_configure(tag, background=color)
 
     def _sort_column(self, column_index: int) -> None:
         items = [
@@ -103,32 +125,67 @@ class DownloadList(GuiElement):
                 return iid
         return ""
 
+    def deselect_current_item(self) -> None:
+        """Deselect the current item."""
+        selection = self.tree.selection()
+        if selection:
+            self.tree.selection_remove(selection[0])
+
     def get_selected_item(self) -> int:
+        """Return the download ID of the currently selected item.
+
+        Returns
+        -------
+        int
+            The download id corresponding to the currently selected
+            item. If no item is selected, this value is -1.
+        """
         selection = self.tree.selection()
         download_id = -1
         if selection:
             download_id = self.tree.set(selection[0], 0)
         return download_id
 
+    # TODO maybe merge download and update, since its pretty much the same thing
     def update_item(self, download_id: int, values: Tuple[str, ...]) -> None:
+        """Update a download item on the list.
+
+        Parameters
+        ----------
+        download_id : int
+            The id of the download item to update.
+        values : Tuple[str, ...]
+            The values of the item. They should be in the same order
+            as the `COLUMNS` attribute.
+        """
         iid = self._get_item_iid(download_id)
-        tag = ""
-        if values[3] == DownloadStatus.IN_PROGRESS.name:
-            tag = "in_progress"
-        elif values[3] == DownloadStatus.CANCELED.name:
-            tag = "canceled"
-        elif values[3] == DownloadStatus.COMPLETED.name:
-            tag = "completed"
-        elif values[3] == DownloadStatus.PAUSED.name:
-            tag = "paused"
+        status = values[3]
+        tag = self._STATUS_TAG_MAP.get(status, "unstarted")
         values = (f"{download_id}",) + values
         self.tree.item(iid, values=values, tags=tag)
 
     def add_item(self, download_id: int, values: Tuple[str, ...]) -> None:
+        """Add a download item to the list.
+
+        Parameters
+        ----------
+        download_id : int
+            The id of the download item to add.
+        values : Tuple[str, ...]
+            The values of the item. They should be in the same order
+            as the `COLUMNS` attribute.
+        """
         values = (f"{download_id}",) + values
-        self.tree.insert("", "end", values=values, tags="normal")
+        self.tree.insert("", "end", values=values, tags="unstarted")
 
     def delete_item(self, download_id: int) -> None:
+        """Delete a download item from the list.
+
+        Parameters
+        ----------
+        download_id : int
+            The id of the download item to delete.
+        """
         iid = self._get_item_iid(download_id)
         if iid:
             self.tree.delete(iid)
@@ -153,6 +210,17 @@ class DownloadListArea(GuiElement):
 
 
 class ApplicationWindow:
+    """The container for the main window.
+
+    Parameters
+    ----------
+    update_function : Callable[[], None]
+        A function that will be called periodically, around 100 times
+        per second. This should be a function that needs to execute
+        constantly on the main thread.
+
+    """
+
     def __init__(self, update_function: Callable[[], None]) -> None:
         self.root = tk.Tk()
         self.root.title("Download Manager")
@@ -163,11 +231,9 @@ class ApplicationWindow:
         self._initialize()
 
     def start(self) -> None:
+        """Start the main window and the Tk mainloop."""
         self._periodic_refresh()
         self.root.mainloop()
-
-    def get_download_url(self) -> str:
-        return self.download_input_area.get_text()
 
     def _initialize(self) -> None:
         self.root.minsize(960, 540)
