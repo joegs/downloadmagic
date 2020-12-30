@@ -146,9 +146,10 @@ class DownloadList(GuiElement):
             download_id = self.tree.set(selection[0], 0)
         return download_id
 
-    # TODO maybe merge download and update, since its pretty much the same thing
     def update_item(self, download_id: int, values: Tuple[str, ...]) -> None:
         """Update a download item on the list.
+
+        If the item was not already on the list, it's added to it.
 
         Parameters
         ----------
@@ -160,23 +161,14 @@ class DownloadList(GuiElement):
         """
         iid = self._get_item_iid(download_id)
         status = values[3]
+        values = (f"{download_id}",) + values
         tag = self._STATUS_TAG_MAP.get(status, "unstarted")
-        values = (f"{download_id}",) + values
-        self.tree.item(iid, values=values, tags=tag)
-
-    def add_item(self, download_id: int, values: Tuple[str, ...]) -> None:
-        """Add a download item to the list.
-
-        Parameters
-        ----------
-        download_id : int
-            The id of the download item to add.
-        values : Tuple[str, ...]
-            The values of the item. They should be in the same order
-            as the `COLUMNS` attribute.
-        """
-        values = (f"{download_id}",) + values
-        self.tree.insert("", "end", values=values, tags="unstarted")
+        # Item is already on the list, update it
+        if iid:
+            self.tree.item(iid, values=values, tags=tag)
+        # Item is not on the list, add it
+        else:
+            self.tree.insert("", "end", values=values, tags=tag)
 
     def delete_item(self, download_id: int) -> None:
         """Delete a download item from the list.

@@ -113,7 +113,7 @@ class Client:
             "",
         )
         download_list = self.application_window.download_list_area.download_list
-        download_list.add_item(download_id, values)
+        download_list.update_item(download_id, values)
 
     def _process_message(self, message: Message) -> None:
         action: str = message["action"]
