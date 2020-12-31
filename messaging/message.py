@@ -111,7 +111,8 @@ class DefaultMessageBroker(MessageBroker):
         topic: str = message["topic"]
         for subscriber in self.subscribers:
             if topic in subscriber.topics:
-                subscriber.receive_message(message)
+                message_copy = message.copy()
+                subscriber.receive_message(message_copy)
 
     def subscribe(self, subscriber: Subscriber) -> None:
         self.subscribers.append(subscriber)
