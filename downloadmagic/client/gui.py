@@ -2,7 +2,7 @@ import importlib.resources
 import tkinter as tk
 from functools import partial
 from tkinter import ttk
-from typing import Callable, Union, NamedTuple
+from typing import Callable, NamedTuple, Union
 
 from downloadmagic.download import DownloadStatus
 
@@ -76,18 +76,11 @@ class DownloadList(GuiElement):
     """
 
     COLUMNS = ("ID", "Filename", "Size", "Progress", "Status", "Speed", "Remaining")
-    TAG_COLORS = {
-        "completed": "#ccffcc",
-        "in_progress": "#ccebff",
-        "paused": "#ffffcc",
-        "canceled": "#ffcccc",
-    }
-    _STATUS_TAG_MAP = {
-        DownloadStatus.COMPLETED.name: "completed",
-        DownloadStatus.IN_PROGRESS.name: "in_progress",
-        DownloadStatus.PAUSED.name: "paused",
-        DownloadStatus.CANCELED.name: "canceled",
-        DownloadStatus.UNSTARTED.name: "unstarted",
+    STATUS_COLORS = {
+        DownloadStatus.COMPLETED.value: "#ccffcc",
+        DownloadStatus.IN_PROGRESS.value: "#ccebff",
+        DownloadStatus.PAUSED.value: "#ffffcc",
+        DownloadStatus.CANCELED.value: "#ffcccc",
     }
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
@@ -121,7 +114,7 @@ class DownloadList(GuiElement):
         self.hscrollbar.grid(column=0, row=1, sticky="WE")
 
     def _configure_tag_colors(self) -> None:
-        for tag, color in self.TAG_COLORS.items():
+        for tag, color in self.STATUS_COLORS.items():
             self.tree.tag_configure(tag, background=color)
 
     def _sort_column(self, column_index: int) -> None:
@@ -173,7 +166,6 @@ class DownloadList(GuiElement):
             The download item to update on the list.
         """
         iid = self._get_item_iid(list_item.download_id)
-        status = list_item.status
         values = (
             f"{list_item.download_id}",
             list_item.filename,
@@ -183,7 +175,7 @@ class DownloadList(GuiElement):
             list_item.speed,
             list_item.remaining,
         )
-        tag = self._STATUS_TAG_MAP.get(status, "unstarted")
+        tag = list_item.status
         # Item is already on the list, update it
         if iid:
             self.tree.item(iid, values=values, tags=tag)
