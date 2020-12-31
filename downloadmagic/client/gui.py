@@ -95,29 +95,36 @@ class DownloadList(GuiElement):
     def _initialize(self) -> None:
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
+        self._configure_tree()
+        self.tree.grid(column=0, row=0, sticky="NSWE")
+        self.vscrollbar.grid(column=1, row=0, sticky="NS")
+        self.hscrollbar.grid(column=0, row=1, sticky="WE")
+
+    def _configure_tree(self) -> None:
+        self.tree.bind("<Key-Escape>", lambda event: self.deselect_current_item())
         self.tree.configure(
             columns=self.COLUMNS,
             show="headings",
-            displaycolumns=tuple(self.COLUMNS[1:]),
+            displaycolumns=self.COLUMNS[1:],
             xscrollcommand=self.hscrollbar.set,
             yscrollcommand=self.vscrollbar.set,
         )
-        self.tree.bind("<Key-Escape>", lambda event: self.deselect_current_item())
-        self._configure_tag_colors()
+        for tag, color in self.STATUS_COLORS.items():
+            self.tree.tag_configure(tag, background=color)
         for index, column in enumerate(self.COLUMNS):
             self.tree.heading(
                 column, text=column, command=partial(self._sort_column, index)
             )
             self.tree.column(column, minwidth=200)
-        self.tree.grid(column=0, row=0, sticky="NSWE")
-        self.vscrollbar.grid(column=1, row=0, sticky="NS")
-        self.hscrollbar.grid(column=0, row=1, sticky="WE")
-
-    def _configure_tag_colors(self) -> None:
-        for tag, color in self.STATUS_COLORS.items():
-            self.tree.tag_configure(tag, background=color)
 
     def _sort_column(self, column_index: int) -> None:
+        """Sort the list items by the selected column.
+
+        Parameters
+        ----------
+        column_index : int
+            The index of the column to use as reference for sorting.
+        """
         items = [
             (self.tree.set(iid, column_index), iid)
             for iid in self.tree.get_children("")
@@ -127,6 +134,22 @@ class DownloadList(GuiElement):
             self.tree.move(iid, "", index)
 
     def _get_item_iid(self, download_id: int) -> str:
+        """Return the iid of the item with the specified download id.
+
+        The iid is the unique identifier for each item (row) in the
+        `TreeView`.
+
+        Parameters
+        ----------
+        download_id : int
+            The download id of the item whose iid will be retrieved.
+
+        Returns
+        -------
+        str
+            The iid of the item. If the item is not present of the
+            list, this value is an empty string.
+        """
         for i in self.tree.get_children(""):
             iid: str = i
             value = self.tree.set(iid, 0)
@@ -185,6 +208,8 @@ class DownloadList(GuiElement):
 
     def delete_item(self, download_id: int) -> None:
         """Delete a download item from the list.
+
+        If the item is not on the list, no action is taken.
 
         Parameters
         ----------
@@ -249,6 +274,7 @@ class ApplicationWindow:
         # self._load_icon()
 
     def _load_icon(self) -> None:
+        """Load the icon for the main window."""
         path = importlib.resources.path("downloadmanager", "icon.ico")
         with path as file:
             self.root.iconbitmap(file)
