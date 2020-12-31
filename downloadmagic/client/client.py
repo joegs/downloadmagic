@@ -24,18 +24,29 @@ class Client:
 
     def _initialize(self) -> None:
         button_bar = self.application_window.download_list_area.button_bar
-        button_bar.add_download_button.configure(command=self._create_download)
+        button_bar.add_download_button.configure(command=self.create_download)
         button_bar.start_download_button.configure(
-            command=lambda: self._download_operation(DownloadOperation.START)
+            command=lambda: self.download_operation(DownloadOperation.START)
         )
         button_bar.pause_download_button.configure(
-            command=lambda: self._download_operation(DownloadOperation.PAUSE)
+            command=lambda: self.download_operation(DownloadOperation.PAUSE)
         )
         button_bar.cancel_download_button.configure(
-            command=lambda: self._download_operation(DownloadOperation.CANCEL)
+            command=lambda: self.download_operation(DownloadOperation.CANCEL)
         )
 
-    def _download_operation(self, download_operation: DownloadOperation) -> None:
+    def download_operation(self, download_operation: DownloadOperation) -> None:
+        """Send a download operation message to the server.
+
+        The `download_id` of the message corresponds to the currently
+        selected download. If no download is currently selected, no
+        action is taken.
+
+        Parameters
+        ----------
+        download_operation : DownloadOperation
+            The download operation for the message.
+        """
         download_list = self.application_window.download_list_area.download_list
         selected_download = download_list.get_selected_item()
         if selected_download == -1:
@@ -48,7 +59,12 @@ class Client:
         )
         self.message_broker.send_message(message)
 
-    def _create_download(self) -> None:
+    def create_download(self) -> None:
+        """Send a create download message to the server.
+
+        The url for the download is taken from the input area in
+        the GUI.
+        """
         input_area = self.application_window.download_input_area
         text = input_area.get_text()
         if not text:
@@ -61,6 +77,7 @@ class Client:
         )
         self.message_broker.send_message(message)
 
+    # TODO maybe have a columns object to make this cleaner
     def _receive_download_status(self, message: DownloadStatusMessage) -> None:
         download_id: int = message["download_id"]
         download = self.downloads.get(download_id, None)
