@@ -48,6 +48,8 @@ class DownloadWorker(th.Thread):
                 return
 
     def _initialize_download(self) -> None:
+        # TODO add a timeout to this, and set the download status
+        # as error if it times out
         self.download = Download.from_url(
             self.download_id, self.url, self.download_directory
         )
@@ -94,6 +96,7 @@ class DownloadWorker(th.Thread):
                 self._send_download_status()
 
     def _send_download_status(self) -> None:
+        """Send a download status message to the server."""
         progress = self.downloaded_bytes / self.download.size
         message = DownloadStatusMessage(
             topic="downloadserver",
@@ -107,6 +110,7 @@ class DownloadWorker(th.Thread):
         self.message_broker.send_message(message)
 
     def _delete_file(self) -> None:
+        """Delete the file that corresponds to this download."""
         filepath = self.download.filepath
         try:
             os.remove(filepath)
@@ -114,6 +118,7 @@ class DownloadWorker(th.Thread):
             pass
 
     def _start_download(self) -> None:
+        """Start or resume this download."""
         mode = "wb"
         if self.status == DownloadStatus.PAUSED:
             range_header = f"bytes={self.downloaded_bytes}-{self.download.size}"
