@@ -2,7 +2,7 @@ import importlib.resources
 import tkinter as tk
 from functools import partial
 from tkinter import ttk
-from typing import Callable, Tuple, Union
+from typing import Callable, Union, NamedTuple
 
 from downloadmagic.download import DownloadStatus
 
@@ -49,6 +49,22 @@ class DownloadListButtonBar(GuiElement):
         self.start_download_button.grid(column=1, row=0, padx="0 10")
         self.pause_download_button.grid(column=2, row=0, padx="0 10")
         self.cancel_download_button.grid(column=3, row=0, padx="0 10")
+
+
+class ListItem(NamedTuple):
+    """Schema for a download list item.
+
+    Every attribute of this class corresponds to the columns of
+    the download list.
+    """
+
+    download_id: int
+    filename: str
+    size: str
+    progress: str
+    status: str
+    speed: str
+    remaining: str
 
 
 class DownloadList(GuiElement):
@@ -126,7 +142,7 @@ class DownloadList(GuiElement):
         return ""
 
     def deselect_current_item(self) -> None:
-        """Deselect the current item."""
+        """Deselect the currently selected item."""
         selection = self.tree.selection()
         if selection:
             self.tree.selection_remove(selection[0])
@@ -146,22 +162,27 @@ class DownloadList(GuiElement):
             download_id = self.tree.set(selection[0], 0)
         return download_id
 
-    def update_item(self, download_id: int, values: Tuple[str, ...]) -> None:
+    def update_item(self, list_item: ListItem) -> None:
         """Update a download item on the list.
 
         If the item was not already on the list, it's added to it.
 
         Parameters
         ----------
-        download_id : int
-            The id of the download item to update.
-        values : Tuple[str, ...]
-            The values of the item. They should be in the same order
-            as the `COLUMNS` attribute.
+        list_item : ListItem
+            The download item to update on the list.
         """
-        iid = self._get_item_iid(download_id)
-        status = values[3]
-        values = (f"{download_id}",) + values
+        iid = self._get_item_iid(list_item.download_id)
+        status = list_item.status
+        values = (
+            f"{list_item.download_id}",
+            list_item.filename,
+            list_item.size,
+            list_item.progress,
+            list_item.status,
+            list_item.speed,
+            list_item.remaining,
+        )
         tag = self._STATUS_TAG_MAP.get(status, "unstarted")
         # Item is already on the list, update it
         if iid:
