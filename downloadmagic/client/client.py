@@ -165,7 +165,7 @@ class Client:
             size=convert_size(download.size),
             progress=self._get_progress_from_download_status(message),
             status=message["status"],
-            speed=convert_size(message["speed"]),
+            speed=f"{convert_size(message['speed'])}/s",
             remaining=self._calculate_remaining_time(message["speed"], remaining_bytes),
         )
         download_list = self.application_window.download_list_area.download_list
@@ -192,7 +192,7 @@ class Client:
             size=convert_size(message["size"]),
             progress="0.00% 0.00 B",
             status=DownloadStatus.UNSTARTED.value,
-            speed="0.00 B",
+            speed="0.00 B/s",
             remaining="",
         )
         download_list = self.application_window.download_list_area.download_list
