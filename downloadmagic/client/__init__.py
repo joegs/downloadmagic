@@ -1,3 +1,3 @@
-from downloadmagic.client.client import Client
+from downloadmagic.client.client import DownloadClient
 
-__all__ = ["Client"]
+__all__ = ["DownloadClient"]

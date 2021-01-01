@@ -12,7 +12,7 @@ from downloadmagic.utilities import convert_size, convert_time
 from messaging import Message, MessageBroker, ThreadSubscriber
 
 
-class Client:
+class DownloadClient:
     def __init__(self, message_broker: MessageBroker) -> None:
         self.application_window = ApplicationWindow(self._process_messages)
         self.downloads: Dict[int, Download] = {}
