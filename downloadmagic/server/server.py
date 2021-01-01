@@ -23,7 +23,7 @@ class DownloadServer(th.Thread):
         self._max_download_id = 1
 
     def create_download(self, url: str, download_directory: str) -> None:
-        """Create a download from the specified values.
+        """Create a download worker from the specified values.
 
         The download is not automatically started.
 
@@ -114,7 +114,6 @@ class DownloadServer(th.Thread):
         Parameters
         ----------
         message : DownloadOperationMessage
-            [description]
         """
         download_id: int = message["download_id"]
         operation: str = message["download_operation"]
