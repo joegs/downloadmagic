@@ -34,6 +34,11 @@ class DownloadClient:
         button_bar.cancel_download_button.configure(
             command=lambda: self.download_operation(DownloadOperation.CANCEL)
         )
+        self._setup_binds()
+
+    def _setup_binds(self) -> None:
+        input_area = self.application_window.download_input_area
+        input_area.text_entry.bind("<Return>", lambda event: self.create_download())
 
     def download_operation(self, download_operation: DownloadOperation) -> None:
         """Send a download operation message to the server.
@@ -70,6 +75,7 @@ class DownloadClient:
         text = input_area.get_text()
         if not text:
             return
+        input_area.clear_text()
         message = CreateDownloadMessage(
             topic="downloadserver",
             action="CreateDownload",

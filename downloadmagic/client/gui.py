@@ -32,6 +32,9 @@ class DownloadInputArea(GuiElement):
         text: str = self.text_entry.get()
         return text
 
+    def clear_text(self) -> None:
+        self.text_entry.delete(0, tk.END)
+
 
 class DownloadListButtonBar(GuiElement):
     """A button bar used to control downloads."""
