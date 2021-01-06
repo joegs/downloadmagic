@@ -8,7 +8,7 @@ from downloadmagic.message import (
     DownloadStatusMessage,
     CreateDownloadMessage,
 )
-from downloadmagic.server.worker import DownloadWorker
+from downloadmagic.server.worker import DownloadWorker, YoutubeDownloadWorker
 from messaging import Message, MessageBroker, ThreadSubscriber
 
 
@@ -37,9 +37,15 @@ class DownloadServer(th.Thread):
             generated.
         """
         download_id = self._get_download_id()
-        worker = DownloadWorker(
-            self.message_broker, download_id, url, download_directory
-        )
+        worker: DownloadWorker
+        if "youtube.com" in url or "youtu.be" in url:
+            worker = YoutubeDownloadWorker(
+                self.message_broker, download_id, url, download_directory
+            )
+        else:
+            worker = DownloadWorker(
+                self.message_broker, download_id, url, download_directory
+            )
         worker.start()
 
     def start_download(self, download_id: int) -> None:

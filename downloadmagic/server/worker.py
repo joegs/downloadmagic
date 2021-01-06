@@ -1,6 +1,6 @@
 import os
 import threading as th
-from typing import cast
+from typing import Any, Dict, cast
 
 import requests
 from downloadmagic.download import Download, DownloadOperation, DownloadStatus
@@ -10,6 +10,7 @@ from downloadmagic.message import (
     DownloadStatusMessage,
 )
 from downloadmagic.utilities import Timer
+from downloadmagic.youtube import download_youtube_mp3, get_youtube_video_info
 from messaging import Message, MessageBroker, ThreadSubscriber
 
 
@@ -173,6 +174,8 @@ class DownloadWorker(th.Thread):
         The download can only be canceled if it isn't completed.
         """
         if self.status != DownloadStatus.COMPLETED:
+            if self.status == DownloadStatus.PAUSED:
+                self._delete_file()
             self.status = DownloadStatus.CANCELED
             self._send_download_status()
 
@@ -277,3 +280,71 @@ class DownloadWorker(th.Thread):
                             break
                         cycle_bytes = 0
             self._finish_download()
+
+
+class YoutubeDownloadWorker(DownloadWorker):
+    def _initialize_download(self) -> None:
+        video_info = get_youtube_video_info(self.download.url)
+        filepath = os.path.join(
+            self.download.download_directory,
+            f"{video_info.title}.{video_info.extension}.part",
+        )
+        self.download = Download(
+            download_id=self.download.download_id,
+            url=self.download.url,
+            download_directory=self.download.download_directory,
+            size=video_info.filesize,
+            filename=f"{video_info.title}.mp3",
+            filepath=filepath,
+            is_pausable=True,
+        )
+        message = DownloadInfoMessage(
+            topic="downloadserver",
+            action="DownloadInfo",
+            download_id=self.download.download_id,
+            url=self.download.url,
+            download_directory=self.download.download_directory,
+            size=self.download.size,
+            filename=self.download.filename,
+            filepath=self.download.filepath,
+            is_pausable=self.download.is_pausable,
+        )
+        self.message_broker.send_message(message)
+        self._send_download_status()
+
+    def _progress_hook(self, download_progress: Dict[str, Any]) -> None:
+        self.downloaded_bytes = download_progress.get("downloaded_bytes", 0)
+        tmp_filename = download_progress.get("tmpfilename", None)
+        if tmp_filename is not None:
+            self.download.filepath = os.path.join(
+                self.download.download_directory, tmp_filename
+            )
+        # The actual value on download_progress may also be None
+        speed = download_progress.get("speed", None)
+        if speed is None:
+            speed = 0
+        self.speed = speed
+        self._update_download()
+        if self.should_finish:
+            raise ValueError()
+
+    def _update_download(self) -> None:
+        if self.downloaded_bytes == self.download.size:
+            self._send_download_status()
+            return
+        self._process_messsages()
+        if self.status in (
+            DownloadStatus.CANCELED,
+            DownloadStatus.PAUSED,
+        ):
+            self.should_finish = True
+            return
+        self._send_download_status()
+
+    def _start_download(self) -> None:
+        try:
+            self.status = DownloadStatus.IN_PROGRESS
+            download_youtube_mp3(self.download.url, self._progress_hook)
+        except ValueError:
+            pass
+        self._finish_download()
