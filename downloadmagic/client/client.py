@@ -1,6 +1,7 @@
+import sys
 from typing import Dict, cast
 
-from downloadmagic.client.gui import ApplicationWindow, ListItem
+from downloadmagic.client.gui import ApplicationWindow, ListItem, choose_directory
 from downloadmagic.download import Download, DownloadOperation, DownloadStatus
 from downloadmagic.message import (
     CreateDownloadMessage,
@@ -20,6 +21,7 @@ class DownloadClient:
         self.subscriber = ThreadSubscriber({"downloadclient"})
         self.message_broker = message_broker
         self.message_broker.subscribe(self.subscriber)
+        self.download_directory = "."
         self._initialize()
 
     def _initialize(self) -> None:
@@ -35,10 +37,7 @@ class DownloadClient:
             command=lambda: self.download_operation(DownloadOperation.CANCEL)
         )
         self._setup_binds()
-
-    def _setup_binds(self) -> None:
-        input_area = self.application_window.download_input_area
-        input_area.text_entry.bind("<Return>", lambda event: self.create_download())
+        self._setup_menu()
 
     def download_operation(self, download_operation: DownloadOperation) -> None:
         """Send a download operation message to the server.
@@ -80,9 +79,24 @@ class DownloadClient:
             topic="downloadserver",
             action="CreateDownload",
             url=text,
-            download_directory=".",
+            download_directory=self.download_directory,
         )
         self.message_broker.send_message(message)
+
+    def _setup_binds(self) -> None:
+        input_area = self.application_window.download_input_area
+        input_area.text_entry.bind("<Return>", lambda event: self.create_download())
+
+    def _setup_menu(self) -> None:
+        application_menu = self.application_window.application_menu
+        file_menu = application_menu.file_menu
+        file_menu.set_exit_command(sys.exit)
+        file_menu.set_download_directory_command(self._set_download_directory)
+
+    def _set_download_directory(self) -> None:
+        download_directory = choose_directory(self.application_window.root)
+        if download_directory:
+            self.download_directory = download_directory
 
     def _calculate_remaining_time(self, speed: float, remaining_bytes: float) -> str:
         """Return the download remaining time, as a readable string.

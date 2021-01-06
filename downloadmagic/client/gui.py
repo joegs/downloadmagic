@@ -1,10 +1,19 @@
 import importlib.resources
 import tkinter as tk
 from functools import partial
-from tkinter import ttk
-from typing import Callable, NamedTuple, Union
+from tkinter import filedialog, ttk
+from typing import Callable, NamedTuple, Optional, Union
 
 from downloadmagic.download import DownloadStatus
+
+
+def choose_directory(parent: Union[tk.Widget, tk.Tk]) -> str:
+    directory: Optional[str] = filedialog.askdirectory(
+        parent=parent, title="Choose a Directory", initialdir=".", mustexist=True
+    )
+    if directory is None:
+        return ""
+    return directory
 
 
 class GuiElement(ttk.Frame):
@@ -225,10 +234,7 @@ class DownloadList(GuiElement):
 
 
 class DownloadListArea(GuiElement):
-    def __init__(
-        self,
-        parent: Union[tk.Widget, tk.Tk],
-    ):
+    def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
         self.button_bar = DownloadListButtonBar(self)
         self.download_list = DownloadList(self)
@@ -240,6 +246,34 @@ class DownloadListArea(GuiElement):
         self.rowconfigure(1, weight=1)
         self.button_bar.grid(column=0, row=0, sticky="WE", pady="0 10")
         self.download_list.grid(column=0, row=1, sticky="NSWE")
+
+
+class FileMenu(tk.Menu):
+    def __init__(self, menubutton: ttk.Menubutton) -> None:
+        super().__init__(menubutton, tearoff=False)
+        self._initialize()
+
+    def _initialize(self) -> None:
+        self.add_command(label="Set Download Directory")
+        self.add_command(label="Exit")
+
+    def set_download_directory_command(self, command: Callable[[], None]) -> None:
+        self.entryconfigure(0, command=command)
+
+    def set_exit_command(self, command: Callable[[], None]) -> None:
+        self.entryconfigure(1, command=command)
+
+
+class ApplicationMenu(GuiElement):
+    def __init__(self, parent: Union[tk.Widget, tk.Tk]):
+        super().__init__(parent)
+        self.file_button = ttk.Menubutton(self, text="File", takefocus=False)
+        self.file_menu = FileMenu(self.file_button)
+        self._initialize()
+
+    def _initialize(self) -> None:
+        self.file_button.grid(column=0, row=0)
+        self.file_button.configure(menu=self.file_menu)
 
 
 class ApplicationWindow:
@@ -259,6 +293,7 @@ class ApplicationWindow:
         self.root.title("Download Manager")
         self.update_function = update_function
         self._fix_treeview_tags()
+        self.application_menu = ApplicationMenu(self.root)
         self.download_input_area = DownloadInputArea(self.root)
         self.download_list_area = DownloadListArea(self.root)
         self._initialize()
@@ -271,14 +306,15 @@ class ApplicationWindow:
     def _initialize(self) -> None:
         self.root.minsize(960, 540)
         self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(1, weight=1)
-        self.download_input_area.grid(column=0, row=0, sticky="NSWE")
-        self.download_list_area.grid(column=0, row=1, sticky="NSWE")
+        self.root.rowconfigure(2, weight=1)
+        self.application_menu.grid(column=0, row=0, sticky="WE")
+        self.download_input_area.grid(column=0, row=1, sticky="NSWE")
+        self.download_list_area.grid(column=0, row=2, sticky="NSWE")
         # self._load_icon()
 
     def _load_icon(self) -> None:
         """Load the icon for the main window."""
-        path = importlib.resources.path("downloadmanager", "icon.ico")
+        path = importlib.resources.path("downloadmagic", "icon.ico")
         with path as file:
             self.root.iconbitmap(file)
 

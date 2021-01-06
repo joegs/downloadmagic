@@ -344,7 +344,9 @@ class YoutubeDownloadWorker(DownloadWorker):
     def _start_download(self) -> None:
         try:
             self.status = DownloadStatus.IN_PROGRESS
-            download_youtube_mp3(self.download.url, self._progress_hook)
+            download_youtube_mp3(
+                self.download.url, self.download.download_directory, self._progress_hook
+            )
         except ValueError:
             pass
         self._finish_download()

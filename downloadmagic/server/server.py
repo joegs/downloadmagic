@@ -1,12 +1,13 @@
+import os
 import threading as th
 from typing import Dict, cast
 
 from downloadmagic.download import Download, DownloadOperation
 from downloadmagic.message import (
+    CreateDownloadMessage,
     DownloadInfoMessage,
     DownloadOperationMessage,
     DownloadStatusMessage,
-    CreateDownloadMessage,
 )
 from downloadmagic.server.worker import DownloadWorker, YoutubeDownloadWorker
 from messaging import Message, MessageBroker, ThreadSubscriber
@@ -37,6 +38,7 @@ class DownloadServer(th.Thread):
             generated.
         """
         download_id = self._get_download_id()
+        download_directory = os.path.abspath(download_directory)
         worker: DownloadWorker
         if "youtube.com" in url or "youtu.be" in url:
             worker = YoutubeDownloadWorker(

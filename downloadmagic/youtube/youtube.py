@@ -1,6 +1,8 @@
+import os
 from dataclasses import dataclass
+from typing import Any, Callable, Dict
+
 from youtube_dl import YoutubeDL
-from typing import Callable, Dict, Any
 
 DownloadHook = Callable[[Dict[str, Any]], None]
 
@@ -25,11 +27,14 @@ class VideoInfo:
     filesize: int
 
 
-def download_youtube_mp3(youtube_url: str, hook: DownloadHook) -> None:
-    options = {
+def download_youtube_mp3(
+    youtube_url: str, download_directory: str, hook: DownloadHook
+) -> None:
+    options: Dict[str, Any] = {
         "progress_hooks": [hook],
     }
     options |= _YDL_OPTS  # type: ignore
+    options["outtmpl"] = os.path.join(download_directory, options["outtmpl"])
     with YoutubeDL(options) as ydl:
         ydl.download([youtube_url])
 
