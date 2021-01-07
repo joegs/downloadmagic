@@ -37,6 +37,8 @@ class DownloadServer(th.Thread):
             directory, as the download filename will be automatically
             generated.
         """
+        if self._download_exists(url):
+            return
         download_id = self._get_download_id()
         download_directory = os.path.abspath(download_directory)
         worker: DownloadWorker
@@ -73,6 +75,12 @@ class DownloadServer(th.Thread):
         download_id = self._max_download_id
         self._max_download_id += 1
         return download_id
+
+    def _download_exists(self, url: str) -> bool:
+        for download in self.downloads.values():
+            if download.url == url:
+                return True
+        return False
 
     def _send_worker_message(
         self, download_id: int, download_operation: DownloadOperation
