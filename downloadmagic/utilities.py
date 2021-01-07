@@ -21,10 +21,10 @@ def convert_time(seconds: int) -> str:
         ("s", 1),
     ]
     components = []
-    for i in intervals:
-        x = seconds // i[1]
-        components.append(f"{x:>02}{i[0]}")
-        seconds = seconds % i[1]
+    for unit_name, interval_seconds in intervals:
+        amount = seconds // interval_seconds
+        seconds = seconds % interval_seconds
+        components.append(f"{amount:>02}{unit_name}")
     result = ""
     result += f"{components[0]} "
     result += ":".join(components[1:])

@@ -43,9 +43,9 @@ class WebsocketBrokerServer(th.Thread):
     ) -> None:
         try:
             async for message in websocket:
-                m = cast(str, message)
+                string_message = cast(str, message)
                 try:
-                    self.output_queue.put_nowait(m)
+                    self.output_queue.put_nowait(string_message)
                     self.sent.set()
                 except queue.Full:
                     pass
@@ -119,9 +119,9 @@ class WebsocketBrokerClient(th.Thread):
     ) -> None:
         try:
             async for message in websocket:
-                m = cast(str, message)
+                string_message = cast(str, message)
                 try:
-                    self.output_queue.put_nowait(m)
+                    self.output_queue.put_nowait(string_message)
                     self.sent.set()
                 except queue.Full:
                     pass
@@ -164,8 +164,8 @@ class SocketServerMessageBroker(MessageBroker):
     def _check_server_for_messages(self) -> None:
         while True:
             self.server.sent.wait()
-            for m in self.server.output_messages():
-                decoded_message = json.loads(m)
+            for string_message in self.server.output_messages():
+                decoded_message = json.loads(string_message)
                 message = cast(Message, decoded_message)
                 self.send_message(message)
 
@@ -203,8 +203,8 @@ class SocketClientMessageBroker(MessageBroker):
     def _check_server_for_messages(self) -> None:
         while True:
             self.client.sent.wait()
-            for m in self.client.output_messages():
-                decoded_message = json.loads(m)
+            for string_message in self.client.output_messages():
+                decoded_message = json.loads(string_message)
                 message = cast(Message, decoded_message)
                 self.send_message(message)
 
