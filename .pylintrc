@@ -1,0 +1,173 @@
+[MASTER]
+
+#extension-pkg-whitelist=
+fail-under=10.0
+
+#ignore=CVS
+#ignore-patterns=
+#init-hook=
+#load-plugins=
+
+limit-inference-results=100
+persistent=yes
+suggestion-mode=yes
+unsafe-load-any-extension=no
+
+
+[MESSAGES CONTROL]
+
+confidence=
+disable=typecheck,
+        similarities,
+        design,
+        format,
+        spelling
+        too-few-public-methods,
+        missing-function-docstring,
+        missing-class-docstring,
+        missing-method-docstring,
+        missing-module-docstring,
+        unsubscriptable-object,
+        inherit-non-class,
+        too-many-ancestors,
+        no-self-use,
+
+enable=c-extension-no-member
+
+[REPORTS]
+
+evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
+output-format=text
+reports=no
+score=no
+
+[REFACTORING]
+
+max-nested-blocks=5
+never-returning-functions=sys.exit
+
+[BASIC]
+
+argument-naming-style=snake_case
+#argument-rgx=
+
+attr-naming-style=snake_case
+#attr-rgx=
+
+bad-names=
+
+bad-names-rgxs=
+
+class-attribute-naming-style=any
+#class-attribute-rgx=
+
+class-naming-style=PascalCase
+#class-rgx=
+
+const-naming-style=UPPER_CASE
+#const-rgx=
+
+docstring-min-length=-1
+
+function-naming-style=snake_case
+#function-rgx=
+
+good-names=i,
+           j,
+           k,
+           ex,
+           Run,
+           _
+#good-names-rgxs=
+
+include-naming-hint=yes
+inlinevar-naming-style=any
+
+#inlinevar-rgx=
+
+method-naming-style=snake_case
+#method-rgx=
+
+module-naming-style=snake_case
+#module-rgx=
+
+name-group=
+
+no-docstring-rgx=^_
+
+property-classes=abc.abstractproperty
+
+variable-naming-style=snake_case
+#variable-rgx=
+
+
+[LOGGING]
+
+logging-format-style=new
+logging-modules=logging
+
+
+[MISCELLANEOUS]
+
+notes=FIXME,
+      XXX,
+      TODO
+#notes-rgx=
+
+
+[STRING]
+
+check-quote-consistency=yes
+check-str-concat-over-line-jumps=yes
+
+
+[VARIABLES]
+
+additional-builtins=
+allow-global-unused-variables=yes
+callbacks=
+
+#dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
+
+ignored-argument-names=_.*
+
+init-import=yes
+
+redefining-builtins-modules=six.moves,past.builtins,future.builtins,builtins,io
+
+
+[CLASSES]
+
+defining-attr-methods=__init__,
+                      __new__,
+                      setUp,
+                      __post_init__
+
+exclude-protected=_asdict,
+                  _fields,
+                  _replace,
+                  _source,
+                  _make
+
+valid-classmethod-first-arg=cls
+valid-metaclass-classmethod-first-arg=cls
+
+
+[IMPORTS]
+
+allow-any-import-level=
+allow-wildcard-with-all=no
+analyse-fallback-blocks=no
+deprecated-modules=optparse,tkinter.tix
+ext-import-graph=
+import-graph=
+int-import-graph=
+known-standard-library=
+known-third-party=enchant
+preferred-modules=
+
+
+[EXCEPTIONS]
+
+overgeneral-exceptions=BaseException,
+                       Exception
