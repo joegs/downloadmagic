@@ -2,7 +2,7 @@ import os
 import threading as th
 from typing import Dict, cast
 
-from downloadmagic.download import Download, DownloadOperation
+from downloadmagic.download import Download, DownloadStatus, DownloadOperation
 from downloadmagic.message import (
     CreateDownloadMessage,
     DownloadInfoMessage,
@@ -15,6 +15,7 @@ from messaging import Message, MessageBroker, ThreadSubscriber
 
 class DownloadServer(th.Thread):
     def __init__(self, message_broker: MessageBroker) -> None:
+        # TODO fix daemons
         super().__init__(daemon=True)
         self.downloads: Dict[int, Download] = {}
         self.downloads_status: Dict[int, DownloadStatusMessage] = {}
@@ -182,6 +183,14 @@ class DownloadServer(th.Thread):
         self.downloads_status[download_id] = message
         message["topic"] = "downloadclient"
         self.message_broker.send_message(message)
+        status = message["status"]
+        if status in (
+            DownloadStatus.COMPLETED.value,
+            DownloadStatus.CANCELED.value,
+            DownloadStatus.ERROR.value,
+        ):
+            del self.downloads[download_id]
+            del self.downloads_status[download_id]
 
     def _process_message(self, message: Message) -> None:
         action = message["action"]
