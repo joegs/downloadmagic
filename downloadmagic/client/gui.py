@@ -6,6 +6,9 @@ from typing import Callable, NamedTuple, Optional, Union
 
 from downloadmagic.download import DownloadStatus
 
+# TODO add an api to everything so that the client doesn't have
+# to use the objects directly
+
 
 def choose_directory(parent: Union[tk.Widget, tk.Tk]) -> str:
     directory: Optional[str] = filedialog.askdirectory(
@@ -92,7 +95,8 @@ class DownloadList(GuiElement):
         DownloadStatus.COMPLETED.value: "#ccffcc",
         DownloadStatus.IN_PROGRESS.value: "#ccebff",
         DownloadStatus.PAUSED.value: "#ffffcc",
-        DownloadStatus.CANCELED.value: "#ffcccc",
+        DownloadStatus.CANCELED.value: "#ffe0b3",
+        DownloadStatus.ERROR.value: "#ffcccc",
     }
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
