@@ -1,13 +1,11 @@
 import importlib.resources
 import tkinter as tk
+from enum import Enum, auto
 from functools import partial
 from tkinter import filedialog, ttk
-from typing import Callable, NamedTuple, Optional, Union
+from typing import Callable, Dict, NamedTuple, Optional, Union
 
 from downloadmagic.download import DownloadStatus
-
-# TODO add an api to everything so that the client doesn't have
-# to use the objects directly
 
 
 def choose_directory(parent: Union[tk.Widget, tk.Tk]) -> str:
@@ -47,23 +45,44 @@ class DownloadInputArea(GuiElement):
     def clear_text(self) -> None:
         self.text_entry.delete(0, tk.END)
 
+    def set_text_entry_bind(
+        self,
+        binding: str,
+        function: Callable[[tk.Event], None],
+    ) -> None:
+        self.text_entry.bind(binding, function)
+
 
 class DownloadListButtonBar(GuiElement):
     """A button bar used to control downloads."""
 
+    class ButtonName(Enum):
+        ADD_DOWNLOAD = auto()
+        START_DOWNLOAD = auto()
+        PAUSE_DOWNLOAD = auto()
+        CANCEL_DOWNLOAD = auto()
+
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self.add_download_button = ttk.Button(self, text="Add")
-        self.start_download_button = ttk.Button(self, text="Start / Resume")
-        self.pause_download_button = ttk.Button(self, text="Pause")
-        self.cancel_download_button = ttk.Button(self, text="Cancel")
+        self.buttons: Dict[DownloadListButtonBar.ButtonName, ttk.Button] = {}
         self._initialize()
 
     def _initialize(self) -> None:
-        self.add_download_button.grid(column=0, row=0, padx="0 10")
-        self.start_download_button.grid(column=1, row=0, padx="0 10")
-        self.pause_download_button.grid(column=2, row=0, padx="0 10")
-        self.cancel_download_button.grid(column=3, row=0, padx="0 10")
+        bn = self.ButtonName
+        self.buttons[bn.ADD_DOWNLOAD] = ttk.Button(self, text="Add")
+        self.buttons[bn.START_DOWNLOAD] = ttk.Button(self, text="Start / Resume")
+        self.buttons[bn.PAUSE_DOWNLOAD] = ttk.Button(self, text="Pause")
+        self.buttons[bn.CANCEL_DOWNLOAD] = ttk.Button(self, text="Cancel")
+
+        for index, button in enumerate(self.buttons.values()):
+            button.grid(column=index, row=0, padx="0 10")
+
+    def set_button_command(
+        self,
+        button_name: "DownloadListButtonBar.ButtonName",
+        command: Callable[[], None],
+    ) -> None:
+        self.buttons[button_name].configure(command=command)
 
 
 class ListItem(NamedTuple):

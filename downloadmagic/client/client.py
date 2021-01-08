@@ -9,7 +9,7 @@ from downloadmagic.message import (
     DownloadOperationMessage,
     DownloadStatusMessage,
 )
-from downloadmagic.utilities import convert_size, convert_time
+from downloadmagic.utilities import calculate_remaining_time, convert_size
 from messaging import Message, MessageBroker, ThreadSubscriber
 
 
@@ -25,17 +25,16 @@ class DownloadClient:
         self._initialize()
 
     def _initialize(self) -> None:
-        button_bar = self.application_window.download_list_area.button_bar
-        button_bar.add_download_button.configure(command=self.create_download)
-        button_bar.start_download_button.configure(
-            command=lambda: self.download_operation(DownloadOperation.START)
-        )
-        button_bar.pause_download_button.configure(
-            command=lambda: self.download_operation(DownloadOperation.PAUSE)
-        )
-        button_bar.cancel_download_button.configure(
-            command=lambda: self.download_operation(DownloadOperation.CANCEL)
-        )
+        download_list_area = self.application_window.download_list_area
+        button_bar = download_list_area.button_bar
+        bn = button_bar.ButtonName
+        start_command = lambda: self.download_operation(DownloadOperation.START)
+        pause_command = lambda: self.download_operation(DownloadOperation.PAUSE)
+        cancel_command = lambda: self.download_operation(DownloadOperation.CANCEL)
+        button_bar.set_button_command(bn.ADD_DOWNLOAD, self.create_download)
+        button_bar.set_button_command(bn.START_DOWNLOAD, start_command)
+        button_bar.set_button_command(bn.PAUSE_DOWNLOAD, pause_command)
+        button_bar.set_button_command(bn.CANCEL_DOWNLOAD, cancel_command)
         self._setup_binds()
         self._setup_menu()
 
@@ -51,7 +50,8 @@ class DownloadClient:
         download_operation : DownloadOperation
             The download operation for the message.
         """
-        download_list = self.application_window.download_list_area.download_list
+        download_list_area = self.application_window.download_list_area
+        download_list = download_list_area.download_list
         selected_download = download_list.get_selected_item()
         # If there is no selected download
         if selected_download == -1:
@@ -85,7 +85,7 @@ class DownloadClient:
 
     def _setup_binds(self) -> None:
         input_area = self.application_window.download_input_area
-        input_area.text_entry.bind("<Return>", lambda event: self.create_download())
+        input_area.set_text_entry_bind("<Return>", lambda event: self.create_download())
 
     def _setup_menu(self) -> None:
         application_menu = self.application_window.application_menu
@@ -97,28 +97,6 @@ class DownloadClient:
         download_directory = choose_directory(self.application_window.root)
         if download_directory:
             self.download_directory = download_directory
-
-    def _calculate_remaining_time(self, speed: float, remaining_bytes: float) -> str:
-        """Return the download remaining time, as a readable string.
-
-        Parameters
-        ----------
-        speed : float
-            The download speed, in bytes per second.
-        remaining_bytes : float
-            The remaining bytes of the download.
-
-        Returns
-        -------
-        str
-            The remaining time of the download, as a human readable
-            string.
-        """
-        remaining_time = ""
-        if speed > 0:
-            seconds = int(remaining_bytes / speed)
-            remaining_time = convert_time(seconds)
-        return remaining_time
 
     def _get_progress_from_download_status(self, message: DownloadStatusMessage) -> str:
         """Return a progress string calculated from a download status.
@@ -186,7 +164,7 @@ class DownloadClient:
             progress=self._get_progress_from_download_status(message),
             status=message["status"],
             speed=f"{convert_size(message['speed'])}/s",
-            remaining=self._calculate_remaining_time(message["speed"], remaining_bytes),
+            remaining=calculate_remaining_time(message["speed"], remaining_bytes),
         )
         download_list = self.application_window.download_list_area.download_list
         download_list.update_item(list_item)

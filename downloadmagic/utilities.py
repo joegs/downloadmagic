@@ -53,6 +53,29 @@ def convert_size(size: float, decimal_places: int = 2) -> str:
     return f"{size:.{decimal_places}f} {unit}"
 
 
+def calculate_remaining_time(speed: float, remaining_bytes: float) -> str:
+    """Return a download remaining time, as a readable string.
+
+    Parameters
+    ----------
+    speed : float
+        The download speed, in bytes per second.
+    remaining_bytes : float
+        The remaining bytes of the download.
+
+    Returns
+    -------
+    str
+        The remaining time of the download, as a human readable string.
+        If the speed is <= 0, this value is an empty string.
+    """
+    remaining_time = ""
+    if speed > 0:
+        seconds = int(remaining_bytes / speed)
+        remaining_time = convert_time(seconds)
+    return remaining_time
+
+
 class Timer:
     """A simple timer.
 
