@@ -61,6 +61,7 @@ class DownloadListButtonBar(GuiElement):
         START_DOWNLOAD = auto()
         PAUSE_DOWNLOAD = auto()
         CANCEL_DOWNLOAD = auto()
+        REMOVE_DOWNLOAD = auto()
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
@@ -73,6 +74,7 @@ class DownloadListButtonBar(GuiElement):
         self.buttons[bn.START_DOWNLOAD] = ttk.Button(self, text="Start / Resume")
         self.buttons[bn.PAUSE_DOWNLOAD] = ttk.Button(self, text="Pause")
         self.buttons[bn.CANCEL_DOWNLOAD] = ttk.Button(self, text="Cancel")
+        self.buttons[bn.REMOVE_DOWNLOAD] = ttk.Button(self, text="Remove")
 
         for index, button in enumerate(self.buttons.values()):
             button.grid(column=index, row=0, padx="0 10")
@@ -198,19 +200,19 @@ class DownloadList(GuiElement):
         if selection:
             self.tree.selection_remove(selection[0])
 
-    def get_selected_item(self) -> int:
+    def get_selected_item(self) -> Optional[int]:
         """Return the download ID of the currently selected item.
 
         Returns
         -------
-        int
+        Optional[int]
             The download id corresponding to the currently selected
             item. If no item is selected, this value is -1.
         """
         selection = self.tree.selection()
-        download_id = -1
+        download_id = None
         if selection:
-            download_id = self.tree.set(selection[0], 0)
+            download_id = int(self.tree.set(selection[0], 0))
         return download_id
 
     def update_item(self, list_item: ListItem) -> None:

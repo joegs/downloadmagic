@@ -35,6 +35,7 @@ class DownloadClient:
         button_bar.set_button_command(bn.START_DOWNLOAD, start_command)
         button_bar.set_button_command(bn.PAUSE_DOWNLOAD, pause_command)
         button_bar.set_button_command(bn.CANCEL_DOWNLOAD, cancel_command)
+        button_bar.set_button_command(bn.REMOVE_DOWNLOAD, self.remove_selected_download)
         self._setup_binds()
         self._setup_menu()
 
@@ -53,8 +54,7 @@ class DownloadClient:
         download_list_area = self.application_window.download_list_area
         download_list = download_list_area.download_list
         selected_download = download_list.get_selected_item()
-        # If there is no selected download
-        if selected_download == -1:
+        if selected_download is None:
             return
         message = DownloadOperationMessage(
             topic="downloadserver",
@@ -82,6 +82,21 @@ class DownloadClient:
             download_directory=self.download_directory,
         )
         self.message_broker.send_message(message)
+
+    def remove_selected_download(self) -> None:
+        download_list_area = self.application_window.download_list_area
+        download_list = download_list_area.download_list
+        selected_download = download_list.get_selected_item()
+        if selected_download is None:
+            return
+        status_message = self.downloads_status[selected_download]
+        status = status_message["status"]
+        if status in (
+            DownloadStatus.COMPLETED.value,
+            DownloadStatus.ERROR.value,
+            DownloadStatus.CANCELED.value,
+        ):
+            download_list.delete_item(selected_download)
 
     def _setup_binds(self) -> None:
         input_area = self.application_window.download_input_area
@@ -156,6 +171,7 @@ class DownloadClient:
         download = self.downloads.get(download_id, None)
         if download is None:
             return
+        self.downloads_status[download_id] = message
         remaining_bytes = download.size - message["downloaded_bytes"]
         list_item = ListItem(
             download_id=download_id,
