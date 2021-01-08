@@ -85,12 +85,21 @@ class DownloadWorker(th.Thread):
     def run(self) -> None:
         self._initialize_download()
         if self.status == DownloadStatus.ERROR:
+            self._terminate()
             return
         while True:
             self.subscriber.received.wait()
             self._process_messsages()
-            if self.status in (DownloadStatus.COMPLETED, DownloadStatus.CANCELED):
+            if self.status in (
+                DownloadStatus.COMPLETED,
+                DownloadStatus.CANCELED,
+                DownloadStatus.ERROR,
+            ):
+                self._terminate()
                 return
+
+    def _terminate(self) -> None:
+        self.message_broker.unsubscribe(self.subscriber)
 
     def _get_placeholder_download(
         self, download_id: int, url: str, download_directory: str
