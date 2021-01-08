@@ -83,7 +83,11 @@ class Download:
 
     @classmethod
     def from_url(
-        cls, download_id: int, url: str, download_directory: str
+        cls,
+        download_id: int,
+        url: str,
+        download_directory: str,
+        timeout: int = 10,
     ) -> "Download":
         """Create a `Download` instance from a url.
 
@@ -95,7 +99,7 @@ class Download:
         Download
             The resulting download.
         """
-        response = requests.head(url, allow_redirects=True)
+        response = requests.head(url, allow_redirects=True, timeout=timeout)
         size = int(response.headers["Content-Length"])
         filename = cls._get_filename(response, url)
         download_directory = os.path.abspath(download_directory)
