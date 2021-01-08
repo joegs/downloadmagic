@@ -75,6 +75,8 @@ class DownloadClient:
         if not text:
             return
         input_area.clear_text()
+        if self._download_exists(text):
+            return
         message = CreateDownloadMessage(
             topic="downloadserver",
             action="CreateDownload",
@@ -96,6 +98,8 @@ class DownloadClient:
             DownloadStatus.ERROR.value,
             DownloadStatus.CANCELED.value,
         ):
+            del self.downloads[selected_download]
+            del self.downloads_status[selected_download]
             download_list.delete_item(selected_download)
 
     def _setup_binds(self) -> None:
@@ -112,6 +116,12 @@ class DownloadClient:
         download_directory = choose_directory(self.application_window.root)
         if download_directory:
             self.download_directory = download_directory
+
+    def _download_exists(self, url: str) -> bool:
+        for download in self.downloads.values():
+            if download.url == url:
+                return True
+        return False
 
     def _get_progress_from_download_status(self, message: DownloadStatusMessage) -> str:
         """Return a progress string calculated from a download status.
