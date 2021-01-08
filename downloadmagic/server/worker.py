@@ -84,6 +84,8 @@ class DownloadWorker(th.Thread):
 
     def run(self) -> None:
         self._initialize_download()
+        if self.status == DownloadStatus.ERROR:
+            return
         while True:
             self.subscriber.received.wait()
             self._process_messsages()
@@ -121,13 +123,15 @@ class DownloadWorker(th.Thread):
         return download
 
     def _initialize_download(self) -> None:
-        # TODO add a timeout to this, and set the download status
-        # as error if it times out
-        self.download = Download.from_url(
-            self.download.download_id,
-            self.download.url,
-            self.download.download_directory,
-        )
+        try:
+            self.download = Download.from_url(
+                self.download.download_id,
+                self.download.url,
+                self.download.download_directory,
+            )
+        except requests.RequestException:
+            self.download.filename = self.download.url
+            self.status = DownloadStatus.ERROR
         message = DownloadInfoMessage(
             topic="downloadserver",
             action="DownloadInfo",
@@ -191,7 +195,11 @@ class DownloadWorker(th.Thread):
 
     def _send_download_status(self) -> None:
         """Send a download status message to the server."""
-        progress = self.downloaded_bytes / self.download.size
+        progress: float
+        if self.download.size == 0:
+            progress = 0
+        else:
+            progress = self.downloaded_bytes / self.download.size
         message = DownloadStatusMessage(
             topic="downloadserver",
             action="DownloadStatus",
