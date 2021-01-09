@@ -70,7 +70,7 @@ class DownloadWorker(th.Thread):
         url: str,
         download_directory: str,
     ) -> None:
-        super().__init__(daemon=True)
+        super().__init__()
         self.download = self._get_placeholder_download(
             download_id, url, download_directory
         )

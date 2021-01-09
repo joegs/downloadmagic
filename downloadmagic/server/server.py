@@ -15,14 +15,22 @@ from messaging import Message, MessageBroker, ThreadSubscriber
 
 class DownloadServer(th.Thread):
     def __init__(self, message_broker: MessageBroker) -> None:
-        # TODO fix daemons
-        super().__init__(daemon=True)
+        super().__init__()
         self.downloads: Dict[int, Download] = {}
         self.downloads_status: Dict[int, DownloadStatusMessage] = {}
         self.subscriber = ThreadSubscriber({"downloadserver"})
         self.message_broker = message_broker
         self.message_broker.subscribe(self.subscriber)
+        self._stop = th.Event()
         self._max_download_id = 1
+
+    def run(self) -> None:
+        while True:
+            self.subscriber.received.wait()
+            for message in self.subscriber.messages():
+                self._process_message(message)
+            if self._stop.is_set():
+                return
 
     def create_download(self, url: str, download_directory: str) -> None:
         """Create a download worker from the specified values.
@@ -64,6 +72,12 @@ class DownloadServer(th.Thread):
     def cancel_download(self, download_id: int) -> None:
         """Cancel the download with the specified id."""
         self._send_worker_message(download_id, DownloadOperation.CANCEL)
+
+    def stop_server(self) -> None:
+        self._stop.set()
+        self.subscriber.received.set()
+        for download_id in self.downloads:
+            self._send_worker_message(download_id, DownloadOperation.CANCEL)
 
     def _get_download_id(self) -> int:
         """Generate a unique download id.
@@ -206,9 +220,3 @@ class DownloadServer(th.Thread):
         elif action == "DownloadStatus":
             download_status_message = cast(DownloadStatusMessage, message)
             self._receive_download_status(download_status_message)
-
-    def run(self) -> None:
-        while True:
-            self.subscriber.received.wait()
-            for message in self.subscriber.messages():
-                self._process_message(message)

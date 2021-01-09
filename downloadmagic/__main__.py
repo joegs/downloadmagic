@@ -9,3 +9,4 @@ if __name__ == "__main__":
     server.start()
     client = DownloadClient(broker)
     client.start()
+    server.stop_server()
