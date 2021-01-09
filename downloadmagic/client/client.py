@@ -25,19 +25,13 @@ class DownloadClient:
         self._initialize()
 
     def _initialize(self) -> None:
-        download_list_area = self.application_window.download_list_area
-        button_bar = download_list_area.button_bar
-        bn = button_bar.ButtonName
-        start_command = lambda: self.download_operation(DownloadOperation.START)
-        pause_command = lambda: self.download_operation(DownloadOperation.PAUSE)
-        cancel_command = lambda: self.download_operation(DownloadOperation.CANCEL)
-        button_bar.set_button_command(bn.ADD_DOWNLOAD, self.create_download)
-        button_bar.set_button_command(bn.START_DOWNLOAD, start_command)
-        button_bar.set_button_command(bn.PAUSE_DOWNLOAD, pause_command)
-        button_bar.set_button_command(bn.CANCEL_DOWNLOAD, cancel_command)
-        button_bar.set_button_command(bn.REMOVE_DOWNLOAD, self.remove_selected_download)
+        self._setup_button_commands()
         self._setup_binds()
         self._setup_menu()
+
+    def start(self) -> None:
+        """Start the client and the GUI."""
+        self.application_window.start()
 
     def download_operation(self, download_operation: DownloadOperation) -> None:
         """Send a download operation message to the server.
@@ -67,8 +61,8 @@ class DownloadClient:
     def create_download(self) -> None:
         """Send a create download message to the server.
 
-        The url for the download is taken from the input area in
-        the GUI.
+        The url for the download is taken from the input area in the
+        GUI. If the download already exists, no action is taken.
         """
         input_area = self.application_window.download_input_area
         text = input_area.get_text()
@@ -86,6 +80,12 @@ class DownloadClient:
         self.message_broker.send_message(message)
 
     def remove_selected_download(self) -> None:
+        """Remove the currently selected download.
+
+        The download may only be removed if it has been completed,
+        canceled, or it had an error. If no download is currently
+        selected, no action is taken.
+        """
         download_list_area = self.application_window.download_list_area
         download_list = download_list_area.download_list
         selected_download = download_list.get_selected_item()
@@ -102,6 +102,19 @@ class DownloadClient:
             del self.downloads_status[selected_download]
             download_list.delete_item(selected_download)
 
+    def _setup_button_commands(self) -> None:
+        download_list_area = self.application_window.download_list_area
+        button_bar = download_list_area.button_bar
+        bn = button_bar.ButtonName
+        start_command = lambda: self.download_operation(DownloadOperation.START)
+        pause_command = lambda: self.download_operation(DownloadOperation.PAUSE)
+        cancel_command = lambda: self.download_operation(DownloadOperation.CANCEL)
+        button_bar.set_button_command(bn.ADD_DOWNLOAD, self.create_download)
+        button_bar.set_button_command(bn.START_DOWNLOAD, start_command)
+        button_bar.set_button_command(bn.PAUSE_DOWNLOAD, pause_command)
+        button_bar.set_button_command(bn.CANCEL_DOWNLOAD, cancel_command)
+        button_bar.set_button_command(bn.REMOVE_DOWNLOAD, self.remove_selected_download)
+
     def _setup_binds(self) -> None:
         input_area = self.application_window.download_input_area
         input_area.set_text_entry_bind("<Return>", lambda event: self.create_download())
@@ -109,8 +122,11 @@ class DownloadClient:
     def _setup_menu(self) -> None:
         application_menu = self.application_window.application_menu
         file_menu = application_menu.file_menu
-        file_menu.set_exit_command(sys.exit)
-        file_menu.set_download_directory_command(self._set_download_directory)
+        me = file_menu.MenuEntry
+        file_menu.set_menu_entry_command(me.EXIT, sys.exit)
+        file_menu.set_menu_entry_command(
+            me.SET_DOWNLOAD_DIRECTORY, self._set_download_directory
+        )
 
     def _set_download_directory(self) -> None:
         download_directory = choose_directory(self.application_window.root)
@@ -123,24 +139,45 @@ class DownloadClient:
                 return True
         return False
 
-    def _get_progress_from_download_status(self, message: DownloadStatusMessage) -> str:
-        """Return a progress string calculated from a download status.
+    def _process_messages(self) -> None:
+        for message in self.subscriber.messages():
+            self._process_message(message)
+
+    def _process_message(self, message: Message) -> None:
+        action: str = message["action"]
+        if action == "DownloadInfo":
+            download_info_message = cast(DownloadInfoMessage, message)
+            self._receive_download_info(download_info_message)
+        elif action == "DownloadStatus":
+            download_status_message = cast(DownloadStatusMessage, message)
+            self._receive_download_status(download_status_message)
+
+    def _receive_download_info(self, message: DownloadInfoMessage) -> None:
+        """Receive a download info message.
+
+        The contents of the message will be used to update the download
+        list in the GUI.
 
         Parameters
         ----------
-        message : DownloadStatusMessage
-            The download status message to create the string from.
-
-        Returns
-        -------
-        str
-            The download progress, in the format "XX.X% XX.X (U)B",
-            where U is the appropiate human readable byte unit.
+        message : DownloadInfoMessage
         """
-        percentage = f"{message['progress']:>.2%} "
-        size = f"{convert_size(message['downloaded_bytes'])}"
-        progress = percentage + size
-        return progress
+        download_id: int = message["download_id"]
+        if download_id in self.downloads:
+            return
+        download = self._get_download_from_download_info(message)
+        self.downloads[download_id] = download
+        list_item = ListItem(
+            download_id=download_id,
+            filename=message["filename"],
+            size=convert_size(message["size"]),
+            progress="0.00% 0.00 B",
+            status=DownloadStatus.UNSTARTED.value,
+            speed="0.00 B/s",
+            remaining="",
+        )
+        download_list = self.application_window.download_list_area.download_list
+        download_list.update_item(list_item)
 
     def _get_download_from_download_info(
         self, message: DownloadInfoMessage
@@ -195,46 +232,21 @@ class DownloadClient:
         download_list = self.application_window.download_list_area.download_list
         download_list.update_item(list_item)
 
-    def _receive_download_info(self, message: DownloadInfoMessage) -> None:
-        """Receive a download info message.
-
-        The contents of the message will be used to update the download
-        list in the GUI.
+    def _get_progress_from_download_status(self, message: DownloadStatusMessage) -> str:
+        """Return a progress string calculated from a download status.
 
         Parameters
         ----------
-        message : DownloadInfoMessage
+        message : DownloadStatusMessage
+            The download status message to create the string from.
+
+        Returns
+        -------
+        str
+            The download progress, in the format "XX.X% XX.X (U)B",
+            where U is the appropiate human readable byte unit.
         """
-        download_id: int = message["download_id"]
-        if download_id in self.downloads:
-            return
-        download = self._get_download_from_download_info(message)
-        self.downloads[download_id] = download
-        list_item = ListItem(
-            download_id=download_id,
-            filename=message["filename"],
-            size=convert_size(message["size"]),
-            progress="0.00% 0.00 B",
-            status=DownloadStatus.UNSTARTED.value,
-            speed="0.00 B/s",
-            remaining="",
-        )
-        download_list = self.application_window.download_list_area.download_list
-        download_list.update_item(list_item)
-
-    def _process_message(self, message: Message) -> None:
-        action: str = message["action"]
-        if action == "DownloadInfo":
-            download_info_message = cast(DownloadInfoMessage, message)
-            self._receive_download_info(download_info_message)
-        elif action == "DownloadStatus":
-            download_status_message = cast(DownloadStatusMessage, message)
-            self._receive_download_status(download_status_message)
-
-    def _process_messages(self) -> None:
-        for message in self.subscriber.messages():
-            self._process_message(message)
-
-    def start(self) -> None:
-        """Start the client and the GUI."""
-        self.application_window.start()
+        percentage = f"{message['progress']:>.2%} "
+        size = f"{convert_size(message['downloaded_bytes'])}"
+        progress = percentage + size
+        return progress

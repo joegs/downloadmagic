@@ -25,8 +25,7 @@ def convert_time(seconds: int) -> str:
         amount = seconds // interval_seconds
         seconds = seconds % interval_seconds
         components.append(f"{amount:>02}{unit_name}")
-    result = ""
-    result += f"{components[0]} "
+    result = f"{components[0]} "
     result += ":".join(components[1:])
     return result
 
@@ -37,9 +36,9 @@ def convert_size(size: float, decimal_places: int = 2) -> str:
     Parameters
     ----------
     size : float
-        The size to convert, in bytes
+        The size to convert, in bytes.
     decimal_places : int, optional
-        The decimal places to include in the output, by default 2
+        The decimal places to include in the output, by default 2.
 
     Returns
     -------

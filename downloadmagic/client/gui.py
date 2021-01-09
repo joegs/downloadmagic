@@ -3,14 +3,30 @@ import tkinter as tk
 from enum import Enum, auto
 from functools import partial
 from tkinter import filedialog, ttk
-from typing import Callable, Dict, NamedTuple, Optional, Union
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from downloadmagic.download import DownloadStatus
 
 
 def choose_directory(parent: Union[tk.Widget, tk.Tk]) -> str:
+    """Prompt the user to choose a directory and return it.
+
+    Parameters
+    ----------
+    parent : Union[tk.Widget, tk.Tk]
+        The parent widget of the directory pick dialog.
+
+    Returns
+    -------
+    str
+        A string with the path of the directory chosen. If no directory
+        was chosen, this string is empty.
+    """
     directory: Optional[str] = filedialog.askdirectory(
-        parent=parent, title="Choose a Directory", initialdir=".", mustexist=True
+        parent=parent,
+        title="Choose a Directory",
+        initialdir=".",
+        mustexist=True,
     )
     if directory is None:
         return ""
@@ -29,28 +45,28 @@ class DownloadInputArea(GuiElement):
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self.label = ttk.Label(self, text="Download link")
-        self.text_entry = ttk.Entry(self, width=100)
+        self._label = ttk.Label(self, text="Download link")
+        self._text_entry = ttk.Entry(self, width=100)
         self._initialize()
 
     def _initialize(self) -> None:
         self.configure(padding=10)
-        self.label.grid(column=0, row=0, padx="0 10", pady="0 10", sticky="NSW")
-        self.text_entry.grid(column=1, row=0, pady="0 10", sticky="WE")
+        self._label.grid(column=0, row=0, padx="0 10", pady="0 10", sticky="NSW")
+        self._text_entry.grid(column=1, row=0, pady="0 10", sticky="WE")
 
     def get_text(self) -> str:
-        text: str = self.text_entry.get()
+        text: str = self._text_entry.get()
         return text
 
     def clear_text(self) -> None:
-        self.text_entry.delete(0, tk.END)
+        self._text_entry.delete(0, tk.END)
 
     def set_text_entry_bind(
         self,
         binding: str,
         function: Callable[[tk.Event], None],
     ) -> None:
-        self.text_entry.bind(binding, function)
+        self._text_entry.bind(binding, function)
 
 
 class DownloadListButtonBar(GuiElement):
@@ -65,18 +81,21 @@ class DownloadListButtonBar(GuiElement):
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self.buttons: Dict[DownloadListButtonBar.ButtonName, ttk.Button] = {}
+        self._buttons: Dict[DownloadListButtonBar.ButtonName, ttk.Button] = {}
         self._initialize()
 
     def _initialize(self) -> None:
         bn = self.ButtonName
-        self.buttons[bn.ADD_DOWNLOAD] = ttk.Button(self, text="Add")
-        self.buttons[bn.START_DOWNLOAD] = ttk.Button(self, text="Start / Resume")
-        self.buttons[bn.PAUSE_DOWNLOAD] = ttk.Button(self, text="Pause")
-        self.buttons[bn.CANCEL_DOWNLOAD] = ttk.Button(self, text="Cancel")
-        self.buttons[bn.REMOVE_DOWNLOAD] = ttk.Button(self, text="Remove")
-
-        for index, button in enumerate(self.buttons.values()):
+        buttons = {
+            bn.ADD_DOWNLOAD: "Add",
+            bn.START_DOWNLOAD: "Start / Resume",
+            bn.PAUSE_DOWNLOAD: "Pause",
+            bn.CANCEL_DOWNLOAD: "Cancel",
+            bn.REMOVE_DOWNLOAD: "Remove",
+        }
+        for button_name, button_text in buttons.items():
+            self._buttons[button_name] = ttk.Button(self, text=button_text)
+        for index, button in enumerate(self._buttons.values()):
             button.grid(column=index, row=0, padx="0 10")
 
     def set_button_command(
@@ -84,7 +103,7 @@ class DownloadListButtonBar(GuiElement):
         button_name: "DownloadListButtonBar.ButtonName",
         command: Callable[[], None],
     ) -> None:
-        self.buttons[button_name].configure(command=command)
+        self._buttons[button_name].configure(command=command)
 
 
 class ListItem(NamedTuple):
@@ -122,83 +141,20 @@ class DownloadList(GuiElement):
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self.tree = ttk.Treeview(self)
-        self.hscrollbar = ttk.Scrollbar(
-            self, orient=tk.HORIZONTAL, command=self.tree.xview
+        self._tree = ttk.Treeview(self)
+        self._hscrollbar = ttk.Scrollbar(
+            self, orient=tk.HORIZONTAL, command=self._tree.xview
         )
-        self.vscrollbar = ttk.Scrollbar(self, command=self.tree.yview)
+        self._vscrollbar = ttk.Scrollbar(self, command=self._tree.yview)
         self._initialize()
 
     def _initialize(self) -> None:
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self._configure_tree()
-        self.tree.grid(column=0, row=0, sticky="NSWE")
-        self.vscrollbar.grid(column=1, row=0, sticky="NS")
-        self.hscrollbar.grid(column=0, row=1, sticky="WE")
-
-    def _configure_tree(self) -> None:
-        self.tree.bind("<Key-Escape>", lambda event: self.deselect_current_item())
-        self.tree.configure(
-            columns=self.COLUMNS,
-            show="headings",
-            displaycolumns=self.COLUMNS[1:],
-            xscrollcommand=self.hscrollbar.set,
-            yscrollcommand=self.vscrollbar.set,
-        )
-        for tag, color in self.STATUS_COLORS.items():
-            self.tree.tag_configure(tag, background=color)
-        for index, column in enumerate(self.COLUMNS):
-            self.tree.heading(
-                column, text=column, command=partial(self._sort_column, index)
-            )
-            self.tree.column(column, minwidth=200)
-
-    def _sort_column(self, column_index: int) -> None:
-        """Sort the list items by the selected column.
-
-        Parameters
-        ----------
-        column_index : int
-            The index of the column to use as reference for sorting.
-        """
-        items = [
-            (self.tree.set(iid, column_index), iid)
-            for iid in self.tree.get_children("")
-        ]
-        items.sort()
-        for index, (_, iid) in enumerate(items):
-            self.tree.move(iid, "", index)
-
-    def _get_item_iid(self, download_id: int) -> str:
-        """Return the iid of the item with the specified download id.
-
-        The iid is the unique identifier for each item (row) in the
-        `TreeView`.
-
-        Parameters
-        ----------
-        download_id : int
-            The download id of the item whose iid will be retrieved.
-
-        Returns
-        -------
-        str
-            The iid of the item. If the item is not present of the
-            list, this value is an empty string.
-        """
-        for i in self.tree.get_children(""):
-            iid: str = i
-            value = self.tree.set(iid, 0)
-            if int(value) == download_id:
-                return iid
-        return ""
-
-    def deselect_current_item(self) -> None:
-        """Deselect the currently selected item."""
-        selection = self.tree.selection()
-        if selection:
-            self.tree.selection_remove(selection[0])
+        self._tree.grid(column=0, row=0, sticky="NSWE")
+        self._vscrollbar.grid(column=1, row=0, sticky="NS")
+        self._hscrollbar.grid(column=0, row=1, sticky="WE")
 
     def get_selected_item(self) -> Optional[int]:
         """Return the download ID of the currently selected item.
@@ -209,11 +165,17 @@ class DownloadList(GuiElement):
             The download id corresponding to the currently selected
             item. If no item is selected, this value is -1.
         """
-        selection = self.tree.selection()
+        selection = self._tree.selection()
         download_id = None
         if selection:
-            download_id = int(self.tree.set(selection[0], 0))
+            download_id = int(self._tree.set(selection[0], 0))
         return download_id
+
+    def deselect_current_item(self) -> None:
+        """Deselect the currently selected item."""
+        selection = self._tree.selection()
+        if selection:
+            self._tree.selection_remove(selection[0])
 
     def update_item(self, list_item: ListItem) -> None:
         """Update a download item on the list.
@@ -238,10 +200,10 @@ class DownloadList(GuiElement):
         tag = list_item.status
         # Item is already on the list, update it
         if iid:
-            self.tree.item(iid, values=values, tags=tag)
+            self._tree.item(iid, values=values, tags=tag)
         # Item is not on the list, add it
         else:
-            self.tree.insert("", "end", values=values, tags=tag)
+            self._tree.insert("", "end", values=values, tags=tag)
 
     def delete_item(self, download_id: int) -> None:
         """Delete a download item from the list.
@@ -255,10 +217,69 @@ class DownloadList(GuiElement):
         """
         iid = self._get_item_iid(download_id)
         if iid:
-            self.tree.delete(iid)
+            self._tree.delete(iid)
+
+    def _configure_tree(self) -> None:
+        self._tree.bind("<Key-Escape>", lambda event: self.deselect_current_item())
+        self._tree.configure(
+            columns=self.COLUMNS,
+            show="headings",
+            displaycolumns=self.COLUMNS[1:],
+            xscrollcommand=self._hscrollbar.set,
+            yscrollcommand=self._vscrollbar.set,
+        )
+        for tag, color in self.STATUS_COLORS.items():
+            self._tree.tag_configure(tag, background=color)
+        for index, column in enumerate(self.COLUMNS):
+            self._tree.heading(
+                column, text=column, command=partial(self._sort_column, index)
+            )
+            self._tree.column(column, minwidth=200)
+
+    def _sort_column(self, column_index: int) -> None:
+        """Sort the list items by the selected column.
+
+        Parameters
+        ----------
+        column_index : int
+            The index of the column to use as reference for sorting.
+        """
+        items: List[Tuple[str, str]] = [
+            (self._tree.set(iid, column_index), iid)
+            for iid in self._tree.get_children("")
+        ]
+        items.sort()
+        for index, (_, iid) in enumerate(items):
+            self._tree.move(iid, "", index)
+
+    def _get_item_iid(self, download_id: int) -> str:
+        """Return the iid of the item with the specified download id.
+
+        The iid is the unique identifier for each item (row) in the
+        `TreeView`.
+
+        Parameters
+        ----------
+        download_id : int
+            The download id of the item whose iid will be retrieved.
+
+        Returns
+        -------
+        str
+            The iid of the item. If the item is not present of the
+            list, this value is an empty string.
+        """
+        for i in self._tree.get_children(""):
+            iid: str = i
+            value = self._tree.set(iid, 0)
+            if int(value) == download_id:
+                return iid
+        return ""
 
 
 class DownloadListArea(GuiElement):
+    """Container for `DownloadList` and `DownloadListButtonBar`."""
+
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
         self.button_bar = DownloadListButtonBar(self)
@@ -274,22 +295,34 @@ class DownloadListArea(GuiElement):
 
 
 class FileMenu(tk.Menu):
+    class MenuEntry(Enum):
+        EXIT = 0
+        SET_DOWNLOAD_DIRECTORY = 1
+
     def __init__(self, menubutton: ttk.Menubutton) -> None:
         super().__init__(menubutton, tearoff=False)
         self._initialize()
 
     def _initialize(self) -> None:
-        self.add_command(label="Set Download Directory")
-        self.add_command(label="Exit")
+        me = self.MenuEntry
+        entries = {
+            me.EXIT: "EXIT",
+            me.SET_DOWNLOAD_DIRECTORY: "Set Download Directory",
+        }
+        for text in entries.values():
+            self.add_command(label=text)
 
-    def set_download_directory_command(self, command: Callable[[], None]) -> None:
-        self.entryconfigure(0, command=command)
-
-    def set_exit_command(self, command: Callable[[], None]) -> None:
-        self.entryconfigure(1, command=command)
+    def set_menu_entry_command(
+        self,
+        menu_entry: "FileMenu.MenuEntry",
+        command: Callable[[], None],
+    ) -> None:
+        self.entryconfigure(menu_entry.value, command=command)
 
 
 class ApplicationMenu(GuiElement):
+    """Menu bar that is displayed at the top of the application."""
+
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
         self.file_button = ttk.Menubutton(self, text="File", takefocus=False)
@@ -306,27 +339,31 @@ class ApplicationWindow:
 
     Parameters
     ----------
-    update_function : Callable[[], None]
+    update_function : Optional[Callable[[], None]], optional
         A function that will be called periodically, around 100 times
         per second. This should be a function that needs to execute
-        constantly on the main thread.
+        constantly on the main thread. By default None.
+
+    update_frequency: int, optional
+        The amount of time that passes between each call to
+        `update_function`, in milliseconds. By default 16.
 
     """
 
-    def __init__(self, update_function: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        update_function: Optional[Callable[[], None]] = None,
+        update_frequency: int = 16,
+    ) -> None:
         self.root = tk.Tk()
         self.root.title("Download Manager")
         self.update_function = update_function
+        self.update_frequency = update_frequency
         self._fix_treeview_tags()
         self.application_menu = ApplicationMenu(self.root)
         self.download_input_area = DownloadInputArea(self.root)
         self.download_list_area = DownloadListArea(self.root)
         self._initialize()
-
-    def start(self) -> None:
-        """Start the main window and the Tk mainloop."""
-        self._periodic_refresh()
-        self.root.mainloop()
 
     def _initialize(self) -> None:
         self.root.minsize(960, 540)
@@ -337,6 +374,12 @@ class ApplicationWindow:
         self.download_list_area.grid(column=0, row=2, sticky="NSWE")
         # self._load_icon()
 
+    def start(self) -> None:
+        """Start the main window and the Tk mainloop."""
+        if self.update_function is not None:
+            self._periodic_refresh()
+        self.root.mainloop()
+
     def _load_icon(self) -> None:
         """Load the icon for the main window."""
         path = importlib.resources.path("downloadmagic", "icon.ico")
@@ -344,13 +387,13 @@ class ApplicationWindow:
             self.root.iconbitmap(file)
 
     def _periodic_refresh(self) -> None:
-        self.update_function()
-        self.root.after(1000 // 100, self._periodic_refresh)
+        self.update_function()  # type: ignore
+        self.root.after(self.update_frequency, self._periodic_refresh)
 
     def _fix_treeview_tags(self) -> None:
         """Fixes a bug with treeview in python >= 3.7.3
 
-        See https://bugs.python.org/issue36468 for more info
+        See https://bugs.python.org/issue36468 for more info.
         """
 
         def fixed_map(option):  # type: ignore
