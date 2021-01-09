@@ -22,14 +22,35 @@ _YDL_OPTS = {
 
 @dataclass
 class VideoInfo:
+    """An object that contains data from a youtube video."""
+
     title: str
     extension: str
     filesize: int
 
 
 def download_youtube_mp3(
-    youtube_url: str, download_directory: str, hook: DownloadHook
+    youtube_url: str,
+    download_directory: str,
+    hook: DownloadHook,
 ) -> None:
+    """Download a youtube video as an mp3 file.
+
+    The mp3 file is saved into `download_directory`. The filename of
+    the mp3 is the same as the video title.
+
+    Parameters
+    ----------
+    youtube_url : str
+        The url of the youtube video.
+    download_directory : str
+        The directory where the mp3 file will be downloaded to.
+    hook : DownloadHook
+        A function that accepts a dictionary as an argument and returns
+        `None`. This function is executed periodically, and the
+        dictionary passed to it contains the status of the download.
+        For more information see youtube_dl documentation.
+    """
     options: Dict[str, Any] = {
         "progress_hooks": [hook],
     }
