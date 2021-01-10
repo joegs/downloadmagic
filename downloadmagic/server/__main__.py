@@ -15,4 +15,5 @@ if __name__ == "__main__":
             time.sleep(1)
         except KeyboardInterrupt:
             server_broker.server.stop.set()
+            server.stop_server()
             break

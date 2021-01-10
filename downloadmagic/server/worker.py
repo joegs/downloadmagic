@@ -1,6 +1,6 @@
 import os
 import threading as th
-from typing import Any, Dict, cast
+from typing import Any, Dict, cast, BinaryIO
 
 import requests
 from downloadmagic.download import Download, DownloadOperation, DownloadStatus
@@ -89,7 +89,8 @@ class DownloadWorker(th.Thread):
             return
         while True:
             self.subscriber.received.wait()
-            self._process_messsages()
+            for message in self.subscriber.messages():
+                self._process_message(message)
             if self.status in (
                 DownloadStatus.COMPLETED,
                 DownloadStatus.CANCELED,
@@ -97,39 +98,6 @@ class DownloadWorker(th.Thread):
             ):
                 self._terminate()
                 return
-
-    def _terminate(self) -> None:
-        self.message_broker.unsubscribe(self.subscriber)
-
-    def _get_placeholder_download(
-        self, download_id: int, url: str, download_directory: str
-    ) -> Download:
-        """Return a placeholder download object.
-
-        Only some of the values of this object are set to real values.
-        The rest are placeholder values. They are set when the download
-        is initialized.
-
-        Parameters
-        ----------
-        download_id : int
-        url : str
-        download_directory : str
-
-        Returns
-        -------
-        Download
-        """
-        download = Download(
-            download_id=download_id,
-            url=url,
-            download_directory=download_directory,
-            size=0,
-            filename="",
-            filepath="",
-            is_pausable=False,
-        )
-        return download
 
     def _initialize_download(self) -> None:
         try:
@@ -155,9 +123,32 @@ class DownloadWorker(th.Thread):
         self.message_broker.send_message(message)
         self._send_download_status()
 
-    def _process_messsages(self) -> None:
-        for message in self.subscriber.messages():
-            self._process_message(message)
+    def _terminate(self) -> None:
+        self._send_download_status()
+        if self.status in (DownloadStatus.CANCELED, DownloadStatus.ERROR):
+            self._delete_file()
+        self.message_broker.unsubscribe(self.subscriber)
+
+    def _delete_file(self) -> None:
+        filepath = self.download.filepath
+        try:
+            os.remove(filepath)
+        except FileNotFoundError:
+            pass
+
+    def _get_placeholder_download(
+        self, download_id: int, url: str, download_directory: str
+    ) -> Download:
+        download = Download(
+            download_id=download_id,
+            url=url,
+            download_directory=download_directory,
+            size=0,
+            filename="",
+            filepath="",
+            is_pausable=False,
+        )
+        return download
 
     def _process_message(self, message: Message) -> None:
         if message["action"] != "DownloadOperation":
@@ -172,38 +163,19 @@ class DownloadWorker(th.Thread):
             self._pause_operation()
 
     def _start_operation(self) -> None:
-        """Start or resume the download.
-
-        The download can only be started or resumed if it hasn't
-        started or it's paused.
-        """
         if self.status in (DownloadStatus.UNSTARTED, DownloadStatus.PAUSED):
             self.should_finish = False
             self._start_download()
 
     def _cancel_operation(self) -> None:
-        """Cancel the download.
-
-        The download can only be canceled if it isn't completed.
-        """
         if self.status != DownloadStatus.COMPLETED:
-            if self.status == DownloadStatus.PAUSED:
-                self._delete_file()
             self.status = DownloadStatus.CANCELED
-            self._send_download_status()
 
     def _pause_operation(self) -> None:
-        """Pause the download.
-
-        The download can only be paused if it's currently in progress
-        and the download connection supports pausing.
-        """
         if self.status == DownloadStatus.IN_PROGRESS and self.download.is_pausable:
             self.status = DownloadStatus.PAUSED
-            self._send_download_status()
 
     def _send_download_status(self) -> None:
-        """Send a download status message to the server."""
         progress: float
         if self.download.size == 0:
             progress = 0
@@ -220,83 +192,59 @@ class DownloadWorker(th.Thread):
         )
         self.message_broker.send_message(message)
 
-    def _delete_file(self) -> None:
-        """Delete the file that corresponds to the download."""
-        filepath = self.download.filepath
-        try:
-            os.remove(filepath)
-        except FileNotFoundError:
-            pass
-
-    def _finish_download(self) -> None:
-        """Finish the download.
-
-        Finishing the download means setting the correct status, and
-        performing the appropiate actions for that status.
-        """
-        if self.status == DownloadStatus.CANCELED:
-            self._delete_file()
-            return
-        if self.status == DownloadStatus.PAUSED:
-            return
-        if self.downloaded_bytes != self.download.size:
-            self.status = DownloadStatus.ERROR
-        else:
-            self.status = DownloadStatus.COMPLETED
-        self._send_download_status()
-
-    def _update(self, cycle_bytes: int, timer: Timer) -> None:
-        """Update the download while it's in progress.
-
-        Parameters
-        ----------
-        cycle_bytes : int
-            The amount of bytes downloaded in the current cycle.
-        timer : Timer
-            The timer object used to measure the download update
-            interval.
-        """
-        # Download is finished, don't process any more messages
-        if self.downloaded_bytes == self.download.size:
-            self.should_finish = True
-            return
-        self.speed = cycle_bytes / timer.elapsed_time
-        self._process_messsages()
-        if self.status in (
-            DownloadStatus.CANCELED,
-            DownloadStatus.PAUSED,
-        ):
-            self.should_finish = True
-            return
-        self._send_download_status()
-        timer.start()
-
     def _start_download(self) -> None:
-        """Start or resume the download."""
-        mode = "wb"
-        headers = {}
-        if self.status == DownloadStatus.PAUSED:
-            headers = {"Range": f"bytes={self.downloaded_bytes}-{self.download.size}"}
-            mode = "ab"
         timer = Timer()
         timer.start()
         cycle_bytes = 0
-        # Use of context managers, the response and the file are both closed once
-        # the block terminates, even in an unhandled exception occurs.
-        with requests.get(self.download.url, stream=True, headers=headers) as response:
-            with open(self.download.filepath, mode) as file:
-                self.status = DownloadStatus.IN_PROGRESS
-                for chunk in response.iter_content(self.CHUNK_SIZE):
-                    file.write(chunk)
-                    self.downloaded_bytes += len(chunk)
-                    cycle_bytes += len(chunk)
-                    timer.measure()
-                    if (timer.elapsed_time) >= self.UPDATE_INTERVAL:
-                        self._update(cycle_bytes, timer)
-                        if self.should_finish:
-                            break
-                        cycle_bytes = 0
-            self._finish_download()
+        with self._get_response() as response, self._get_file_object() as file:
+            self.status = DownloadStatus.IN_PROGRESS
+            for chunk in response.iter_content(self.CHUNK_SIZE):
+                file.write(chunk)
+                self.downloaded_bytes += len(chunk)
+                cycle_bytes += len(chunk)
+                timer.measure()
+                if (timer.elapsed_time) >= self.UPDATE_INTERVAL:
+                    self._update()
+                    if self.should_finish:
+                        break
+                    self.speed = cycle_bytes / timer.elapsed_time
+                    cycle_bytes = 0
+                    timer.start()
+        self._finish_download()
+
+    def _get_response(self) -> requests.Response:
+        headers: Dict[str, str] = {}
+        if self.status == DownloadStatus.PAUSED:
+            headers = {"Range": f"bytes={self.downloaded_bytes}-{self.download.size}"}
+        response = requests.get(self.download.url, stream=True, headers=headers)
+        return response
+
+    def _get_file_object(self) -> BinaryIO:
+        mode = "wb"
+        if self.status == DownloadStatus.PAUSED:
+            mode = "ab"
+        file_object: BinaryIO = cast(BinaryIO, open(self.download.filepath, mode))
+        return file_object
+
+    def _update(self) -> None:
+        # Download is finished, don't process any more messages
+        if self.downloaded_bytes == self.download.size:
+            self._send_download_status()
+            return
+        for message in self.subscriber.messages():
+            self._process_message(message)
+        if self.status in (DownloadStatus.CANCELED, DownloadStatus.PAUSED):
+            self.should_finish = True
+            return
+        self._send_download_status()
+
+    def _finish_download(self) -> None:
+        if self.status in (DownloadStatus.CANCELED, DownloadStatus.PAUSED):
+            return
+        if self.downloaded_bytes == self.download.size:
+            self.status = DownloadStatus.COMPLETED
+        else:
+            self.status = DownloadStatus.ERROR
 
 
 class YoutubeDownloadWorker(DownloadWorker):
@@ -341,28 +289,17 @@ class YoutubeDownloadWorker(DownloadWorker):
         if speed is None:
             speed = 0
         self.speed = speed
-        self._update_download()
+        self._update()
         if self.should_finish:
             raise ValueError()
-
-    def _update_download(self) -> None:
-        if self.downloaded_bytes == self.download.size:
-            self._send_download_status()
-            return
-        self._process_messsages()
-        if self.status in (
-            DownloadStatus.CANCELED,
-            DownloadStatus.PAUSED,
-        ):
-            self.should_finish = True
-            return
-        self._send_download_status()
 
     def _start_download(self) -> None:
         try:
             self.status = DownloadStatus.IN_PROGRESS
             download_youtube_mp3(
-                self.download.url, self.download.download_directory, self._progress_hook
+                self.download.url,
+                self.download.download_directory,
+                self._progress_hook,
             )
         except ValueError:
             pass
