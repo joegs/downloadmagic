@@ -153,15 +153,6 @@ class DownloadClient:
             self._receive_download_status(download_status_message)
 
     def _receive_download_info(self, message: DownloadInfoMessage) -> None:
-        """Receive a download info message.
-
-        The contents of the message will be used to update the download
-        list in the GUI.
-
-        Parameters
-        ----------
-        message : DownloadInfoMessage
-        """
         download_id: int = message["download_id"]
         if download_id in self.downloads:
             return
@@ -182,17 +173,6 @@ class DownloadClient:
     def _get_download_from_download_info(
         self, message: DownloadInfoMessage
     ) -> Download:
-        """Return a download created from a download info message.
-
-        Parameters
-        ----------
-        message : DownloadInfoMessage
-            The download info message to create the download from.
-
-        Returns
-        -------
-        Download
-        """
         download = Download(
             download_id=message["download_id"],
             url=message["url"],
@@ -205,15 +185,6 @@ class DownloadClient:
         return download
 
     def _receive_download_status(self, message: DownloadStatusMessage) -> None:
-        """Receive a download status message.
-
-        The contents of the message will be used to update the download
-        list in the GUI.
-
-        Parameters
-        ----------
-        message : DownloadStatusMessage
-        """
         download_id: int = message["download_id"]
         download = self.downloads.get(download_id, None)
         if download is None:
