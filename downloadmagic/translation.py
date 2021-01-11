@@ -1,13 +1,15 @@
 import gettext
+import importlib.resources
 
 
 class Translation:
     def __init__(self, language: str = "en"):
         self.language = language
+        path = importlib.resources.files("downloadmagic") / "locale"  # type: ignore
         self._translations = {
-            "en": gettext.translation("downloadmagic", "locale", languages=["en"]),
-            "es": gettext.translation("downloadmagic", "locale", languages=["es"]),
-            "ja": gettext.translation("downloadmagic", "locale", languages=["ja"]),
+            "en": gettext.translation("downloadmagic", path, languages=["en"]),
+            "es": gettext.translation("downloadmagic", path, languages=["es"]),
+            "ja": gettext.translation("downloadmagic", path, languages=["ja"]),
         }
 
     def translate(self, string: str) -> str:
