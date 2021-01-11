@@ -1,4 +1,3 @@
-import sys
 from typing import Dict, cast
 
 from downloadmagic.client.gui import ApplicationWindow, ListItem, choose_directory
@@ -123,10 +122,13 @@ class DownloadClient:
         application_menu = self.application_window.application_menu
         file_menu = application_menu.file_menu
         me = file_menu.MenuEntry
-        file_menu.set_menu_entry_command(me.EXIT, sys.exit)
+        file_menu.set_menu_entry_command(me.EXIT, self._stop_gui)
         file_menu.set_menu_entry_command(
             me.SET_DOWNLOAD_DIRECTORY, self._set_download_directory
         )
+
+    def _stop_gui(self) -> None:
+        self.application_window.stop = True
 
     def _set_download_directory(self) -> None:
         download_directory = choose_directory(self.application_window.root)

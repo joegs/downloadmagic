@@ -6,6 +6,7 @@ from tkinter import filedialog, ttk
 from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from downloadmagic.download import DownloadStatus
+from downloadmagic.translation import T_, TM_
 
 
 def choose_directory(parent: Union[tk.Widget, tk.Tk]) -> str:
@@ -45,7 +46,7 @@ class DownloadInputArea(GuiElement):
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self._label = ttk.Label(self, text="Download link")
+        self._label = ttk.Label(self, text=T_("Download link"))
         self._text_entry = ttk.Entry(self, width=100)
         self._initialize()
 
@@ -87,11 +88,11 @@ class DownloadListButtonBar(GuiElement):
     def _initialize(self) -> None:
         bn = self.ButtonName
         buttons = {
-            bn.ADD_DOWNLOAD: "Add",
-            bn.START_DOWNLOAD: "Start / Resume",
-            bn.PAUSE_DOWNLOAD: "Pause",
-            bn.CANCEL_DOWNLOAD: "Cancel",
-            bn.REMOVE_DOWNLOAD: "Remove",
+            bn.ADD_DOWNLOAD: T_("Add"),
+            bn.START_DOWNLOAD: T_("Start / Resume"),
+            bn.PAUSE_DOWNLOAD: T_("Pause"),
+            bn.CANCEL_DOWNLOAD: T_("Cancel"),
+            bn.REMOVE_DOWNLOAD: T_("Remove"),
         }
         for button_name, button_text in buttons.items():
             self._buttons[button_name] = ttk.Button(self, text=button_text)
@@ -130,7 +131,15 @@ class DownloadList(GuiElement):
 
     """
 
-    COLUMNS = ("ID", "Filename", "Size", "Progress", "Status", "Speed", "Remaining")
+    COLUMNS = (
+        "ID",
+        TM_("Filename"),
+        TM_("Size"),
+        TM_("Progress"),
+        TM_("Status"),
+        TM_("Speed"),
+        TM_("Remaining"),
+    )
     STATUS_COLORS = {
         DownloadStatus.COMPLETED.value: "#ccffcc",
         DownloadStatus.IN_PROGRESS.value: "#ccebff",
@@ -221,20 +230,21 @@ class DownloadList(GuiElement):
 
     def _configure_tree(self) -> None:
         self._tree.bind("<Key-Escape>", lambda event: self.deselect_current_item())
+        columns = [T_(column) for column in self.COLUMNS]
         self._tree.configure(
-            columns=self.COLUMNS,
+            columns=columns,
             show="headings",
-            displaycolumns=self.COLUMNS[1:],
+            displaycolumns=columns[1:],
             xscrollcommand=self._hscrollbar.set,
             yscrollcommand=self._vscrollbar.set,
         )
         for tag, color in self.STATUS_COLORS.items():
             self._tree.tag_configure(tag, background=color)
-        for index, column in enumerate(self.COLUMNS):
+        for index, column in enumerate(columns):
             self._tree.heading(
-                column, text=column, command=partial(self._sort_column, index)
+                index, text=column, command=partial(self._sort_column, index)
             )
-            self._tree.column(column, minwidth=200)
+            self._tree.column(index, minwidth=200)
 
     def _sort_column(self, column_index: int) -> None:
         """Sort the list items by the selected column.
@@ -306,8 +316,8 @@ class FileMenu(tk.Menu):
     def _initialize(self) -> None:
         me = self.MenuEntry
         entries = {
-            me.EXIT: "EXIT",
-            me.SET_DOWNLOAD_DIRECTORY: "Set Download Directory",
+            me.EXIT: T_("Exit"),
+            me.SET_DOWNLOAD_DIRECTORY: T_("Set Download Directory"),
         }
         for text in entries.values():
             self.add_command(label=text)
@@ -325,7 +335,7 @@ class ApplicationMenu(GuiElement):
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self.file_button = ttk.Menubutton(self, text="File", takefocus=False)
+        self.file_button = ttk.Menubutton(self, text=T_("File"), takefocus=False)
         self.file_menu = FileMenu(self.file_button)
         self._initialize()
 
@@ -363,6 +373,7 @@ class ApplicationWindow:
         self.application_menu = ApplicationMenu(self.root)
         self.download_input_area = DownloadInputArea(self.root)
         self.download_list_area = DownloadListArea(self.root)
+        self.stop = False
         self._initialize()
 
     def _initialize(self) -> None:
@@ -387,6 +398,8 @@ class ApplicationWindow:
             self.root.iconbitmap(file)
 
     def _periodic_refresh(self) -> None:
+        if self.stop:
+            self.root.destroy()
         self.update_function()  # type: ignore
         self.root.after(self.update_frequency, self._periodic_refresh)
 
