@@ -240,7 +240,7 @@ class DownloadWorker(th.Thread):
     def _finish_download(self) -> None:
         if self.status in (DownloadStatus.CANCELED, DownloadStatus.PAUSED):
             return
-        if self.downloaded_bytes == self.download.size:
+        if self.downloaded_bytes == self.download.size or self.download.size == 0:
             self.status = DownloadStatus.COMPLETED
         else:
             self.status = DownloadStatus.ERROR

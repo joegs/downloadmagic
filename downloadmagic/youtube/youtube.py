@@ -66,9 +66,12 @@ def get_youtube_video_info(youtube_url: str) -> VideoInfo:
             youtube_url,
             download=False,
         )
+        filesize = info_dict["filesize"]
+        if filesize is None:
+            filesize = 0
         video_info = VideoInfo(
             title=info_dict["title"],
             extension=info_dict["ext"],
-            filesize=info_dict["filesize"],
+            filesize=filesize,
         )
         return video_info
