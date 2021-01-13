@@ -235,7 +235,6 @@ class DownloadWorker(th.Thread):
             self._process_message(message)
         if self.status in (DownloadStatus.CANCELED, DownloadStatus.PAUSED):
             self.should_finish = True
-            return
         self._send_download_status()
 
     def _finish_download(self) -> None:
