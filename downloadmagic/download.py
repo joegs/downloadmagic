@@ -26,8 +26,6 @@ class DownloadOperation(Enum):
 class Download:
     """Container for the information of a download.
 
-    This is a dataclass, all attributes are required.
-
     Attributes
     ----------
     download_id : int
@@ -40,22 +38,26 @@ class Download:
         The size of the download, in bytes.
     filename : str
         The filename of the download.
-    filepath : str
-        The file path where the download will be saved to. This must
-        the concatenation of `download_directory` and `filename`.
     is_pausable : bool
         Indicates whether or not the download can be paused and resumed
         later.
 
+    filepath : str
+        The file path where the download will be saved to. This is a
+        computed property. It's the concatenation of
+        `download_directory` and `filename`.
     """
 
     download_id: int
     url: str
-    download_directory: str
-    size: int
-    filename: str
-    filepath: str
-    is_pausable: bool
+    size: int = 0
+    download_directory: str = ""
+    filename: str = ""
+    is_pausable: bool = False
+
+    @property
+    def filepath(self) -> str:
+        return os.path.join(self.download_directory, self.filename)
 
     @staticmethod
     def _get_filename_from_url(url: str) -> str:
@@ -103,9 +105,13 @@ class Download:
         size = int(response.headers["Content-Length"])
         filename = cls._get_filename(response, url)
         download_directory = os.path.abspath(download_directory)
-        filepath = os.path.join(download_directory, filename)
         is_pausable = cls._get_pausable(response)
         download = Download(
-            download_id, url, download_directory, size, filename, filepath, is_pausable
+            download_id,
+            url,
+            size,
+            download_directory,
+            filename,
+            is_pausable,
         )
         return download

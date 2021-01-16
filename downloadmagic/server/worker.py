@@ -71,8 +71,10 @@ class DownloadWorker(th.Thread):
         download_directory: str,
     ) -> None:
         super().__init__()
-        self.download = self._get_placeholder_download(
-            download_id, url, download_directory
+        self.download = Download(
+            download_id,
+            url,
+            download_directory=download_directory,
         )
         self.subscriber = ThreadSubscriber({f"downloadworker{download_id}"})
         self.downloaded_bytes = 0
@@ -135,20 +137,6 @@ class DownloadWorker(th.Thread):
             os.remove(filepath)
         except FileNotFoundError:
             pass
-
-    def _get_placeholder_download(
-        self, download_id: int, url: str, download_directory: str
-    ) -> Download:
-        download = Download(
-            download_id=download_id,
-            url=url,
-            download_directory=download_directory,
-            size=0,
-            filename="",
-            filepath="",
-            is_pausable=False,
-        )
-        return download
 
     def _process_message(self, message: Message) -> None:
         if message["action"] != "DownloadOperation":
@@ -249,17 +237,12 @@ class DownloadWorker(th.Thread):
 class YoutubeDownloadWorker(DownloadWorker):
     def _initialize_download(self) -> None:
         video_info = get_youtube_video_info(self.download.url)
-        filepath = os.path.join(
-            self.download.download_directory,
-            f"{video_info.title}.{video_info.extension}.part",
-        )
         self.download = Download(
             download_id=self.download.download_id,
             url=self.download.url,
             download_directory=self.download.download_directory,
             size=video_info.filesize,
             filename=f"{video_info.title}.mp3",
-            filepath=filepath,
             is_pausable=True,
         )
         message = DownloadInfoMessage(
@@ -278,11 +261,6 @@ class YoutubeDownloadWorker(DownloadWorker):
 
     def _progress_hook(self, download_progress: Dict[str, Any]) -> None:
         self.downloaded_bytes = download_progress.get("downloaded_bytes", 0)
-        tmp_filename = download_progress.get("tmpfilename", None)
-        if tmp_filename is not None:
-            self.download.filepath = os.path.join(
-                self.download.download_directory, tmp_filename
-            )
         # The actual value on download_progress may also be None
         speed = download_progress.get("speed", None)
         if speed is None:

@@ -181,7 +181,6 @@ class DownloadClient:
             download_directory=message["download_directory"],
             size=message["size"],
             filename=message["filename"],
-            filepath=message["filepath"],
             is_pausable=message["is_pausable"],
         )
         return download
