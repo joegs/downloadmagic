@@ -1,6 +1,7 @@
 from typing import Dict, cast
 
 from downloadmagic.client.gui import ApplicationWindow, ListItem, choose_directory
+from downloadmagic.config import ConfigOption, Configuration
 from downloadmagic.download import Download, DownloadOperation, DownloadStatus
 from downloadmagic.message import (
     CreateDownloadMessage,
@@ -13,12 +14,15 @@ from messaging import Message, MessageBroker, ThreadSubscriber
 
 
 class DownloadClient:
-    def __init__(self, message_broker: MessageBroker) -> None:
+    def __init__(
+        self, message_broker: MessageBroker, configuration: Configuration
+    ) -> None:
+        self.message_broker = message_broker
+        self.configuration = configuration
         self.application_window = ApplicationWindow(self._process_messages)
         self.downloads: Dict[int, Download] = {}
         self.downloads_status: Dict[int, DownloadStatusMessage] = {}
         self.subscriber = ThreadSubscriber({"downloadclient"})
-        self.message_broker = message_broker
         self.message_broker.subscribe(self.subscriber)
         self.download_directory = "."
         self._initialize()
@@ -121,11 +125,19 @@ class DownloadClient:
     def _setup_menu(self) -> None:
         application_menu = self.application_window.application_menu
         file_menu = application_menu.file_menu
-        me = file_menu.MenuEntry
-        file_menu.set_menu_entry_command(me.EXIT, self._stop_gui)
+        options_menu = application_menu.options_menu
+        fme = file_menu.MenuEntry
+        file_menu.set_menu_entry_command(fme.EXIT, self._stop_gui)
         file_menu.set_menu_entry_command(
-            me.SET_DOWNLOAD_DIRECTORY, self._set_download_directory
+            fme.SET_DOWNLOAD_DIRECTORY, self._set_download_directory
         )
+        ome = options_menu.MenuEntry
+        english_command = lambda: self._change_language("en")
+        spanish_command = lambda: self._change_language("es")
+        japanese_command = lambda: self._change_language("ja")
+        options_menu.set_menu_entry_command(ome.ENGLISH, english_command)
+        options_menu.set_menu_entry_command(ome.SPANISH, spanish_command)
+        options_menu.set_menu_entry_command(ome.JAPANESE, japanese_command)
 
     def _stop_gui(self) -> None:
         self.application_window.stop = True
@@ -140,6 +152,20 @@ class DownloadClient:
             if download.url == url:
                 return True
         return False
+
+    def _change_language(self, language: str) -> None:
+        self.configuration.set_config_value(ConfigOption.LANGUAGE, language)
+        self._reload_gui_text()
+
+    def _reload_gui_text(self) -> None:
+        input_area = self.application_window.download_input_area
+        # There is no need to call reload_text() on the children of download_list_area
+        # as it's reload_text() method already does that
+        download_list_area = self.application_window.download_list_area
+        application_menu = self.application_window.application_menu
+        input_area.reload_text()
+        download_list_area.reload_text()
+        application_menu.reload_text()
 
     def _process_messages(self) -> None:
         for message in self.subscriber.messages():

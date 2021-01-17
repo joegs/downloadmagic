@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-01-11 01:03-0600\n"
+"POT-Creation-Date: 2021-01-16 21:06-0600\n"
 "PO-Revision-Date: 2021-01-10 20:22-0600\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -18,62 +18,78 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.9.0\n"
 
-#: downloadmagic/client/gui.py:49
+#: downloadmagic/client/gui.py:79
 msgid "Download link"
 msgstr "Link a descargar"
 
-#: downloadmagic/client/gui.py:91
+#: downloadmagic/client/gui.py:114
 msgid "Add"
 msgstr "Añadir"
 
-#: downloadmagic/client/gui.py:92
+#: downloadmagic/client/gui.py:115
 msgid "Start / Resume"
 msgstr "Comenzar / Resumir"
 
-#: downloadmagic/client/gui.py:93
+#: downloadmagic/client/gui.py:116
 msgid "Pause"
 msgstr "Pausar"
 
-#: downloadmagic/client/gui.py:94
+#: downloadmagic/client/gui.py:117
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: downloadmagic/client/gui.py:95
+#: downloadmagic/client/gui.py:118
 msgid "Remove"
 msgstr "Remover"
 
-#: downloadmagic/client/gui.py:136
+#: downloadmagic/client/gui.py:150
 msgid "Filename"
 msgstr "Nombre"
 
-#: downloadmagic/client/gui.py:137
+#: downloadmagic/client/gui.py:151
 msgid "Size"
 msgstr "Tamaño"
 
-#: downloadmagic/client/gui.py:138
+#: downloadmagic/client/gui.py:152
 msgid "Progress"
 msgstr "Progreso"
 
-#: downloadmagic/client/gui.py:139
+#: downloadmagic/client/gui.py:153
 msgid "Status"
 msgstr "Estado"
 
-#: downloadmagic/client/gui.py:140
+#: downloadmagic/client/gui.py:154
 msgid "Speed"
 msgstr "Velocidad"
 
-#: downloadmagic/client/gui.py:141
+#: downloadmagic/client/gui.py:155
 msgid "Remaining"
 msgstr "Restante"
 
-#: downloadmagic/client/gui.py:319
+#: downloadmagic/client/gui.py:352
 msgid "Exit"
 msgstr "Salir"
 
-#: downloadmagic/client/gui.py:320
+#: downloadmagic/client/gui.py:353
 msgid "Set Download Directory"
 msgstr "Establecer directorio de descarga"
 
-#: downloadmagic/client/gui.py:338
+#: downloadmagic/client/gui.py:384
+msgid "English"
+msgstr "Ingles"
+
+#: downloadmagic/client/gui.py:385
+msgid "Spanish"
+msgstr "Español"
+
+#: downloadmagic/client/gui.py:386
+msgid "Japanese"
+msgstr "Japones"
+
+#: downloadmagic/client/gui.py:411
 msgid "File"
 msgstr "Archivo"
+
+#: downloadmagic/client/gui.py:412
+msgid "Language"
+msgstr "Lenguaje"

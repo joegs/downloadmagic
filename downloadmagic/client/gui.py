@@ -1,5 +1,6 @@
 import importlib.resources
 import tkinter as tk
+from abc import ABC, abstractmethod
 from enum import Enum, auto
 from functools import partial
 from tkinter import filedialog, ttk
@@ -34,11 +35,15 @@ def choose_directory(parent: Union[tk.Widget, tk.Tk]) -> str:
     return directory
 
 
-class GuiElement(ttk.Frame):
+class GuiElement(ttk.Frame, ABC):
     """Base class for all GUI elements."""
 
     def _initialize(self) -> None:
         pass
+
+    @abstractmethod
+    def reload_text(self) -> None:
+        ...
 
 
 class DownloadInputArea(GuiElement):
@@ -46,7 +51,7 @@ class DownloadInputArea(GuiElement):
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self._label = ttk.Label(self, text=T_("Download link"))
+        self._label = ttk.Label(self)
         self._text_entry = ttk.Entry(self, width=100)
         self._initialize()
 
@@ -54,6 +59,7 @@ class DownloadInputArea(GuiElement):
         self.configure(padding=10)
         self._label.grid(column=0, row=0, padx="0 10", pady="0 10", sticky="NSW")
         self._text_entry.grid(column=1, row=0, pady="0 10", sticky="WE")
+        self.reload_text()
 
     def get_text(self) -> str:
         text: str = self._text_entry.get()
@@ -68,6 +74,9 @@ class DownloadInputArea(GuiElement):
         function: Callable[[tk.Event], None],
     ) -> None:
         self._text_entry.bind(binding, function)
+
+    def reload_text(self) -> None:
+        self._label.configure(text=T_("Download link"))
 
 
 class DownloadListButtonBar(GuiElement):
@@ -86,6 +95,20 @@ class DownloadListButtonBar(GuiElement):
         self._initialize()
 
     def _initialize(self) -> None:
+        for button_name in self.ButtonName:
+            self._buttons[button_name] = ttk.Button(self)
+        for index, button in enumerate(self._buttons.values()):
+            button.grid(column=index, row=0, padx="0 10")
+        self.reload_text()
+
+    def set_button_command(
+        self,
+        button_name: "DownloadListButtonBar.ButtonName",
+        command: Callable[[], None],
+    ) -> None:
+        self._buttons[button_name].configure(command=command)
+
+    def reload_text(self) -> None:
         bn = self.ButtonName
         buttons = {
             bn.ADD_DOWNLOAD: T_("Add"),
@@ -95,16 +118,7 @@ class DownloadListButtonBar(GuiElement):
             bn.REMOVE_DOWNLOAD: T_("Remove"),
         }
         for button_name, button_text in buttons.items():
-            self._buttons[button_name] = ttk.Button(self, text=button_text)
-        for index, button in enumerate(self._buttons.values()):
-            button.grid(column=index, row=0, padx="0 10")
-
-    def set_button_command(
-        self,
-        button_name: "DownloadListButtonBar.ButtonName",
-        command: Callable[[], None],
-    ) -> None:
-        self._buttons[button_name].configure(command=command)
+            self._buttons[button_name].configure(text=button_text)
 
 
 class ListItem(NamedTuple):
@@ -164,6 +178,7 @@ class DownloadList(GuiElement):
         self._tree.grid(column=0, row=0, sticky="NSWE")
         self._vscrollbar.grid(column=1, row=0, sticky="NS")
         self._hscrollbar.grid(column=0, row=1, sticky="WE")
+        self.reload_text()
 
     def get_selected_item(self) -> Optional[int]:
         """Return the download ID of the currently selected item.
@@ -230,21 +245,17 @@ class DownloadList(GuiElement):
 
     def _configure_tree(self) -> None:
         self._tree.bind("<Key-Escape>", lambda event: self.deselect_current_item())
-        columns = [T_(column) for column in self.COLUMNS]
         self._tree.configure(
-            columns=columns,
+            columns=self.COLUMNS,
             show="headings",
-            displaycolumns=columns[1:],
             xscrollcommand=self._hscrollbar.set,
             yscrollcommand=self._vscrollbar.set,
         )
+        for index, _ in enumerate(self.COLUMNS):
+            self._tree.heading(index, command=partial(self._sort_column, index))
+            self._tree.column(index, minwidth=200)
         for tag, color in self.STATUS_COLORS.items():
             self._tree.tag_configure(tag, background=color)
-        for index, column in enumerate(columns):
-            self._tree.heading(
-                index, text=column, command=partial(self._sort_column, index)
-            )
-            self._tree.column(index, minwidth=200)
 
     def _sort_column(self, column_index: int) -> None:
         """Sort the list items by the selected column.
@@ -286,6 +297,12 @@ class DownloadList(GuiElement):
                 return iid
         return ""
 
+    def reload_text(self) -> None:
+        columns = [T_(column) for column in self.COLUMNS]
+        self._tree.configure(columns=columns, displaycolumns=columns[1:])
+        for index, column in enumerate(columns):
+            self._tree.heading(index, text=column)
+
 
 class DownloadListArea(GuiElement):
     """Container for `DownloadList` and `DownloadListButtonBar`."""
@@ -303,6 +320,10 @@ class DownloadListArea(GuiElement):
         self.button_bar.grid(column=0, row=0, sticky="WE", pady="0 10")
         self.download_list.grid(column=0, row=1, sticky="NSWE")
 
+    def reload_text(self) -> None:
+        self.button_bar.reload_text()
+        self.download_list.reload_text()
+
 
 class FileMenu(tk.Menu):
     class MenuEntry(Enum):
@@ -314,13 +335,9 @@ class FileMenu(tk.Menu):
         self._initialize()
 
     def _initialize(self) -> None:
-        me = self.MenuEntry
-        entries = {
-            me.EXIT: T_("Exit"),
-            me.SET_DOWNLOAD_DIRECTORY: T_("Set Download Directory"),
-        }
-        for text in entries.values():
-            self.add_command(label=text)
+        for _ in self.MenuEntry:
+            self.add_command()
+        self.reload_text()
 
     def set_menu_entry_command(
         self,
@@ -329,19 +346,72 @@ class FileMenu(tk.Menu):
     ) -> None:
         self.entryconfigure(menu_entry.value, command=command)
 
+    def reload_text(self) -> None:
+        me = self.MenuEntry
+        entries = {
+            me.EXIT: T_("Exit"),
+            me.SET_DOWNLOAD_DIRECTORY: T_("Set Download Directory"),
+        }
+        for entry, text in entries.items():
+            self.entryconfigure(entry.value, label=text)
+
+
+class LanguageMenu(tk.Menu):
+    class MenuEntry(Enum):
+        ENGLISH = 0
+        SPANISH = 1
+        JAPANESE = 2
+
+    def __init__(self, menubutton: ttk.Menubutton) -> None:
+        super().__init__(menubutton, tearoff=False)
+        self._initialize()
+
+    def _initialize(self) -> None:
+        for _ in self.MenuEntry:
+            self.add_command()
+        self.reload_text()
+
+    def set_menu_entry_command(
+        self,
+        menu_entry: "LanguageMenu.MenuEntry",
+        command: Callable[[], None],
+    ) -> None:
+        self.entryconfigure(menu_entry.value, command=command)
+
+    def reload_text(self) -> None:
+        me = self.MenuEntry
+        entries = {
+            me.ENGLISH: T_("English"),
+            me.SPANISH: T_("Spanish"),
+            me.JAPANESE: T_("Japanese"),
+        }
+        for entry, text in entries.items():
+            self.entryconfigure(entry.value, label=text)
+
 
 class ApplicationMenu(GuiElement):
     """Menu bar that is displayed at the top of the application."""
 
     def __init__(self, parent: Union[tk.Widget, tk.Tk]):
         super().__init__(parent)
-        self.file_button = ttk.Menubutton(self, text=T_("File"), takefocus=False)
+        self.file_button = ttk.Menubutton(self, takefocus=False)
         self.file_menu = FileMenu(self.file_button)
+        self.options_button = ttk.Menubutton(self, takefocus=False)
+        self.options_menu = LanguageMenu(self.options_button)
         self._initialize()
 
     def _initialize(self) -> None:
         self.file_button.grid(column=0, row=0)
         self.file_button.configure(menu=self.file_menu)
+        self.options_button.grid(column=1, row=0)
+        self.options_button.configure(menu=self.options_menu)
+        self.reload_text()
+
+    def reload_text(self) -> None:
+        self.file_button.configure(text=T_("File"))
+        self.options_button.configure(text=T_("Language"))
+        self.file_menu.reload_text()
+        self.options_menu.reload_text()
 
 
 class ApplicationWindow:
