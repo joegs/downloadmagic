@@ -126,19 +126,26 @@ class DownloadClient:
         application_menu = self.application_window.application_menu
         file_menu = application_menu.file_menu
         options_menu = application_menu.options_menu
-        fme = file_menu.MenuEntry
-        file_menu.set_menu_entry_command(fme.EXIT, self._stop_gui)
-        file_menu.set_menu_entry_command(
-            fme.SET_DOWNLOAD_DIRECTORY, self._set_download_directory
-        )
         language_menu = options_menu.language_menu
-        lme = language_menu.MenuEntry
+        fme = file_menu.FileMenuEntry
+        ome = options_menu.OptionMenuEntry
+        lme = language_menu.LanguageMenuEntry
+        file_menu.set_menu_entry_command(fme.EXIT, self._stop_gui)
+        options_menu.set_menu_entry_command(
+            ome.SET_DOWNLOAD_DIRECTORY, self._set_download_directory
+        )
         english_command = lambda: self._change_language("en")
         spanish_command = lambda: self._change_language("es")
         japanese_command = lambda: self._change_language("ja")
         language_menu.set_menu_entry_command(lme.ENGLISH, english_command)
         language_menu.set_menu_entry_command(lme.SPANISH, spanish_command)
         language_menu.set_menu_entry_command(lme.JAPANESE, japanese_command)
+
+    def _download_exists(self, url: str) -> bool:
+        for download in self.downloads.values():
+            if download.url == url:
+                return True
+        return False
 
     def _stop_gui(self) -> None:
         self.application_window.stop = True
@@ -148,12 +155,6 @@ class DownloadClient:
         if download_directory:
             self.download_directory = download_directory
 
-    def _download_exists(self, url: str) -> bool:
-        for download in self.downloads.values():
-            if download.url == url:
-                return True
-        return False
-
     def _change_language(self, language: str) -> None:
         self.configuration.set_config_value(ConfigOption.LANGUAGE, language)
         self._reload_gui_text()
@@ -161,7 +162,7 @@ class DownloadClient:
     def _reload_gui_text(self) -> None:
         input_area = self.application_window.download_input_area
         # There is no need to call reload_text() on the children of download_list_area
-        # as it's reload_text() method already does that
+        # as its reload_text() method already does that
         download_list_area = self.application_window.download_list_area
         application_menu = self.application_window.application_menu
         input_area.reload_text()

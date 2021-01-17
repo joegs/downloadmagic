@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-01-16 21:06-0600\n"
+"POT-Creation-Date: 2021-01-16 23:21-0600\n"
 "PO-Revision-Date: 2021-01-10 20:23-0600\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -18,78 +18,82 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.9.0\n"
 
-#: downloadmagic/client/gui.py:79
+#: downloadmagic/client/gui.py:96
 msgid "Download link"
 msgstr "ダウンロード・リンク"
 
-#: downloadmagic/client/gui.py:114
+#: downloadmagic/client/gui.py:131
 msgid "Add"
 msgstr "追加する"
 
-#: downloadmagic/client/gui.py:115
+#: downloadmagic/client/gui.py:132
 msgid "Start / Resume"
 msgstr "始める / 続ける"
 
-#: downloadmagic/client/gui.py:116
+#: downloadmagic/client/gui.py:133
 msgid "Pause"
 msgstr "休止する"
 
-#: downloadmagic/client/gui.py:117
+#: downloadmagic/client/gui.py:134
 msgid "Cancel"
 msgstr "キャンセル"
 
-#: downloadmagic/client/gui.py:118
+#: downloadmagic/client/gui.py:135
 msgid "Remove"
 msgstr "除く"
 
-#: downloadmagic/client/gui.py:150
+#: downloadmagic/client/gui.py:167
 msgid "Filename"
 msgstr "ファイル・ネーム"
 
-#: downloadmagic/client/gui.py:151
+#: downloadmagic/client/gui.py:168
 msgid "Size"
 msgstr "サイズ"
 
-#: downloadmagic/client/gui.py:152
+#: downloadmagic/client/gui.py:169
 msgid "Progress"
 msgstr "進行状況"
 
-#: downloadmagic/client/gui.py:153
+#: downloadmagic/client/gui.py:170
 msgid "Status"
 msgstr "状態"
 
-#: downloadmagic/client/gui.py:154
+#: downloadmagic/client/gui.py:171
 msgid "Speed"
 msgstr "スピード"
 
-#: downloadmagic/client/gui.py:155
+#: downloadmagic/client/gui.py:172
 msgid "Remaining"
 msgstr "残り"
 
-#: downloadmagic/client/gui.py:352
+#: downloadmagic/client/gui.py:361
 msgid "Exit"
 msgstr "出る"
 
-#: downloadmagic/client/gui.py:353
-msgid "Set Download Directory"
-msgstr "ダウンロードディレクトリを設定する"
-
-#: downloadmagic/client/gui.py:384
+#: downloadmagic/client/gui.py:385
 msgid "English"
 msgstr "英語"
 
-#: downloadmagic/client/gui.py:385
+#: downloadmagic/client/gui.py:386
 msgid "Spanish"
 msgstr "スペイン語"
 
-#: downloadmagic/client/gui.py:386
+#: downloadmagic/client/gui.py:387
 msgid "Japanese"
 msgstr "日本語"
 
-#: downloadmagic/client/gui.py:411
+#: downloadmagic/client/gui.py:417
+msgid "Language"
+msgstr "言語"
+
+#: downloadmagic/client/gui.py:418
+msgid "Set Download Directory"
+msgstr "ダウンロードディレクトリを設定する"
+
+#: downloadmagic/client/gui.py:443
 msgid "File"
 msgstr "ファイル"
 
-#: downloadmagic/client/gui.py:412
-msgid "Language"
-msgstr "言語"
+#: downloadmagic/client/gui.py:444
+msgid "Options"
+msgstr "設定"

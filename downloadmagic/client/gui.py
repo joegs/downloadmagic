@@ -46,6 +46,23 @@ class GuiElement(ttk.Frame, ABC):
         ...
 
 
+class MenuEntry(Enum):
+    ...
+
+
+class GuiMenu(tk.Menu, ABC):
+    def set_menu_entry_command(
+        self,
+        menu_entry: MenuEntry,
+        command: Callable[[], None],
+    ) -> None:
+        self.entryconfigure(menu_entry.value, command=command)
+
+    @abstractmethod
+    def reload_text(self) -> None:
+        ...
+
+
 class DownloadInputArea(GuiElement):
     """An area where download links are inputted by the user."""
 
@@ -302,6 +319,7 @@ class DownloadList(GuiElement):
         self._tree.configure(columns=columns, displaycolumns=columns[1:])
         for index, column in enumerate(columns):
             self._tree.heading(index, text=column)
+            self._tree.column(index, minwidth=200)
 
 
 class DownloadListArea(GuiElement):
@@ -325,39 +343,30 @@ class DownloadListArea(GuiElement):
         self.download_list.reload_text()
 
 
-class FileMenu(tk.Menu):
-    class MenuEntry(Enum):
+class FileMenu(GuiMenu):
+    class FileMenuEntry(MenuEntry):
         EXIT = 0
-        SET_DOWNLOAD_DIRECTORY = 1
 
     def __init__(self, menubutton: ttk.Menubutton) -> None:
         super().__init__(menubutton, tearoff=False)
         self._initialize()
 
     def _initialize(self) -> None:
-        for _ in self.MenuEntry:
+        for _ in self.FileMenuEntry:
             self.add_command()
         self.reload_text()
 
-    def set_menu_entry_command(
-        self,
-        menu_entry: "FileMenu.MenuEntry",
-        command: Callable[[], None],
-    ) -> None:
-        self.entryconfigure(menu_entry.value, command=command)
-
     def reload_text(self) -> None:
-        me = self.MenuEntry
+        me = self.FileMenuEntry
         entries = {
             me.EXIT: T_("Exit"),
-            me.SET_DOWNLOAD_DIRECTORY: T_("Set Download Directory"),
         }
         for entry, text in entries.items():
             self.entryconfigure(entry.value, label=text)
 
 
-class LanguageMenu(tk.Menu):
-    class MenuEntry(Enum):
+class LanguageMenu(GuiMenu):
+    class LanguageMenuEntry(MenuEntry):
         ENGLISH = 0
         SPANISH = 1
         JAPANESE = 2
@@ -367,19 +376,12 @@ class LanguageMenu(tk.Menu):
         self._initialize()
 
     def _initialize(self) -> None:
-        for _ in self.MenuEntry:
+        for _ in self.LanguageMenuEntry:
             self.add_command()
         self.reload_text()
 
-    def set_menu_entry_command(
-        self,
-        menu_entry: "LanguageMenu.MenuEntry",
-        command: Callable[[], None],
-    ) -> None:
-        self.entryconfigure(menu_entry.value, command=command)
-
     def reload_text(self) -> None:
-        me = self.MenuEntry
+        me = self.LanguageMenuEntry
         entries = {
             me.ENGLISH: T_("English"),
             me.SPANISH: T_("Spanish"),
@@ -389,9 +391,10 @@ class LanguageMenu(tk.Menu):
             self.entryconfigure(entry.value, label=text)
 
 
-class OptionMenu(tk.Menu):
-    class MenuEntry(Enum):
+class OptionMenu(GuiMenu):
+    class OptionMenuEntry(MenuEntry):
         LANGUAGE = 0
+        SET_DOWNLOAD_DIRECTORY = 1
 
     def __init__(self, menubutton: ttk.Menubutton) -> None:
         super().__init__(menubutton, tearoff=False)
@@ -399,26 +402,25 @@ class OptionMenu(tk.Menu):
         self._initialize()
 
     def _initialize(self) -> None:
-        types = {self.MenuEntry.LANGUAGE: "cascade"}
-        for entry, menu_type in types.items():
+        me = self.OptionMenuEntry
+        menu_types = {
+            me.LANGUAGE: "cascade",
+            me.SET_DOWNLOAD_DIRECTORY: "command",
+        }
+        for _, menu_type in menu_types.items():
             self.add(menu_type)
-        self.entryconfigure(self.MenuEntry.LANGUAGE.value, menu=self.language_menu)
+        self.entryconfigure(me.LANGUAGE.value, menu=self.language_menu)
         self.reload_text()
 
-    def set_menu_entry_command(
-        self,
-        menu_entry: "OptionMenu.MenuEntry",
-        command: Callable[[], None],
-    ) -> None:
-        self.entryconfigure(menu_entry.value, command=command)
-
     def reload_text(self) -> None:
-        me = self.MenuEntry
+        me = self.OptionMenuEntry
         entries = {
             me.LANGUAGE: T_("Language"),
+            me.SET_DOWNLOAD_DIRECTORY: T_("Set Download Directory"),
         }
         for entry, text in entries.items():
             self.entryconfigure(entry.value, label=text)
+        self.language_menu.reload_text()
 
 
 class ApplicationMenu(GuiElement):
