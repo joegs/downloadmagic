@@ -24,7 +24,6 @@ class DownloadClient:
         self.downloads_status: Dict[int, DownloadStatusMessage] = {}
         self.subscriber = ThreadSubscriber({"downloadclient"})
         self.message_broker.subscribe(self.subscriber)
-        self.download_directory = "."
         self._initialize()
 
     def _initialize(self) -> None:
@@ -74,11 +73,14 @@ class DownloadClient:
         input_area.clear_text()
         if self._download_exists(text):
             return
+        download_directory = self.configuration.get_config_value(
+            ConfigOption.DOWNLOAD_DIRECTORY
+        )
         message = CreateDownloadMessage(
             topic="downloadserver",
             action="CreateDownload",
             url=text,
-            download_directory=self.download_directory,
+            download_directory=download_directory,
         )
         self.message_broker.send_message(message)
 
@@ -153,7 +155,9 @@ class DownloadClient:
     def _set_download_directory(self) -> None:
         download_directory = choose_directory(self.application_window.root)
         if download_directory:
-            self.download_directory = download_directory
+            self.configuration.set_config_value(
+                ConfigOption.DOWNLOAD_DIRECTORY, download_directory
+            )
 
     def _change_language(self, language: str) -> None:
         self.configuration.set_config_value(ConfigOption.LANGUAGE, language)
