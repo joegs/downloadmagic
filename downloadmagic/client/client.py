@@ -150,7 +150,7 @@ class DownloadClient:
         return False
 
     def _stop_gui(self) -> None:
-        self.application_window.stop = True
+        self.application_window.root.destroy()
 
     def _set_download_directory(self) -> None:
         download_directory = choose_directory(self.application_window.root)

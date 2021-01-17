@@ -477,7 +477,6 @@ class ApplicationWindow:
         self.application_menu = ApplicationMenu(self.root)
         self.download_input_area = DownloadInputArea(self.root)
         self.download_list_area = DownloadListArea(self.root)
-        self.stop = False
         self._initialize()
 
     def _initialize(self) -> None:
@@ -502,8 +501,6 @@ class ApplicationWindow:
             self.root.iconbitmap(file)
 
     def _periodic_refresh(self) -> None:
-        if self.stop:
-            self.root.destroy()
         self.update_function()  # type: ignore
         self.root.after(self.update_frequency, self._periodic_refresh)
 
