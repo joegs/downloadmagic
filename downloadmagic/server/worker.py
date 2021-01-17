@@ -1,6 +1,6 @@
 import os
 import threading as th
-from typing import Any, Dict, cast, BinaryIO
+from typing import Any, BinaryIO, Dict, Optional, cast
 
 import requests
 from downloadmagic.download import Download, DownloadOperation, DownloadStatus
@@ -235,6 +235,16 @@ class DownloadWorker(th.Thread):
 
 
 class YoutubeDownloadWorker(DownloadWorker):
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        download_id: int,
+        url: str,
+        download_directory: str,
+    ):
+        super().__init__(message_broker, download_id, url, download_directory)
+        self._partial_download_filepath: Optional[str] = None
+
     def _initialize_download(self) -> None:
         video_info = get_youtube_video_info(self.download.url)
         self.download = Download(
@@ -261,6 +271,7 @@ class YoutubeDownloadWorker(DownloadWorker):
 
     def _progress_hook(self, download_progress: Dict[str, Any]) -> None:
         self.downloaded_bytes = download_progress.get("downloaded_bytes", 0)
+        self._partial_download_filepath = download_progress.get("tmpfilename", None)
         # The actual value on download_progress may also be None
         speed = download_progress.get("speed", None)
         if speed is None:
@@ -269,6 +280,15 @@ class YoutubeDownloadWorker(DownloadWorker):
         self._update()
         if self.should_finish:
             raise ValueError()
+
+    def _delete_file(self) -> None:
+        filepath = self._partial_download_filepath
+        if filepath is None:
+            return
+        try:
+            os.remove(filepath)
+        except FileNotFoundError:
+            pass
 
     def _start_download(self) -> None:
         try:

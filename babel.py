@@ -39,7 +39,6 @@ def babel_update() -> None:
         subprocess.run(update_command, check=True)
 
 
-# pybabel compile -D downloadmagic -d downloadmagic\locale
 def babel_compile() -> None:
     compile_command = [
         "pybabel",
