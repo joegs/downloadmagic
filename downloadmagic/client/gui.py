@@ -362,8 +362,8 @@ class LanguageMenu(tk.Menu):
         SPANISH = 1
         JAPANESE = 2
 
-    def __init__(self, menubutton: ttk.Menubutton) -> None:
-        super().__init__(menubutton, tearoff=False)
+    def __init__(self) -> None:
+        super().__init__(tearoff=False)
         self._initialize()
 
     def _initialize(self) -> None:
@@ -389,6 +389,38 @@ class LanguageMenu(tk.Menu):
             self.entryconfigure(entry.value, label=text)
 
 
+class OptionMenu(tk.Menu):
+    class MenuEntry(Enum):
+        LANGUAGE = 0
+
+    def __init__(self, menubutton: ttk.Menubutton) -> None:
+        super().__init__(menubutton, tearoff=False)
+        self.language_menu = LanguageMenu()
+        self._initialize()
+
+    def _initialize(self) -> None:
+        types = {self.MenuEntry.LANGUAGE: "cascade"}
+        for entry, menu_type in types.items():
+            self.add(menu_type)
+        self.entryconfigure(self.MenuEntry.LANGUAGE.value, menu=self.language_menu)
+        self.reload_text()
+
+    def set_menu_entry_command(
+        self,
+        menu_entry: "OptionMenu.MenuEntry",
+        command: Callable[[], None],
+    ) -> None:
+        self.entryconfigure(menu_entry.value, command=command)
+
+    def reload_text(self) -> None:
+        me = self.MenuEntry
+        entries = {
+            me.LANGUAGE: T_("Language"),
+        }
+        for entry, text in entries.items():
+            self.entryconfigure(entry.value, label=text)
+
+
 class ApplicationMenu(GuiElement):
     """Menu bar that is displayed at the top of the application."""
 
@@ -397,7 +429,7 @@ class ApplicationMenu(GuiElement):
         self.file_button = ttk.Menubutton(self, takefocus=False)
         self.file_menu = FileMenu(self.file_button)
         self.options_button = ttk.Menubutton(self, takefocus=False)
-        self.options_menu = LanguageMenu(self.options_button)
+        self.options_menu = OptionMenu(self.options_button)
         self._initialize()
 
     def _initialize(self) -> None:
@@ -409,7 +441,7 @@ class ApplicationMenu(GuiElement):
 
     def reload_text(self) -> None:
         self.file_button.configure(text=T_("File"))
-        self.options_button.configure(text=T_("Language"))
+        self.options_button.configure(text=T_("Options"))
         self.file_menu.reload_text()
         self.options_menu.reload_text()
 

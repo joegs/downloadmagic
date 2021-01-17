@@ -131,13 +131,14 @@ class DownloadClient:
         file_menu.set_menu_entry_command(
             fme.SET_DOWNLOAD_DIRECTORY, self._set_download_directory
         )
-        ome = options_menu.MenuEntry
+        language_menu = options_menu.language_menu
+        lme = language_menu.MenuEntry
         english_command = lambda: self._change_language("en")
         spanish_command = lambda: self._change_language("es")
         japanese_command = lambda: self._change_language("ja")
-        options_menu.set_menu_entry_command(ome.ENGLISH, english_command)
-        options_menu.set_menu_entry_command(ome.SPANISH, spanish_command)
-        options_menu.set_menu_entry_command(ome.JAPANESE, japanese_command)
+        language_menu.set_menu_entry_command(lme.ENGLISH, english_command)
+        language_menu.set_menu_entry_command(lme.SPANISH, spanish_command)
+        language_menu.set_menu_entry_command(lme.JAPANESE, japanese_command)
 
     def _stop_gui(self) -> None:
         self.application_window.stop = True
