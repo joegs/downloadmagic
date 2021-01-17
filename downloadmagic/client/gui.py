@@ -470,7 +470,7 @@ class ApplicationWindow:
         update_frequency: int = 16,
     ) -> None:
         self.root = tk.Tk()
-        self.root.title("Download Manager")
+        self.root.title("Download Magic")
         self.update_function = update_function
         self.update_frequency = update_frequency
         self._fix_treeview_tags()
